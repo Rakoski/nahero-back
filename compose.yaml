@@ -39,6 +39,7 @@ services:
       NAHERO_DB: ${NAHERO_DB}
       NAHERO_DB_USER: ${NAHERO_DB_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      NAHERO_JWT_TOKEN: ${NAHERO_JWT_TOKEN}
     volumes:
       - ./:/app
     working_dir: /app
