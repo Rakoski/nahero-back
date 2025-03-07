@@ -42,7 +42,7 @@ public class JwtService {
             Algorithm algorithm = Algorithm.HMAC256(secretKey);
 
             return JWT.require(algorithm)
-                    .withIssuer("inova-api")
+                    .withIssuer("nahero-api")
                     .build()
                     .verify(token);
 
