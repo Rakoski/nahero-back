@@ -51,6 +51,6 @@ public class Question extends BaseEntity {
     private Boolean isActive = true;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by")
-    private User createdBy;
+    @JoinColumn(name = "teacher_id")
+    private User teacher;
 }
