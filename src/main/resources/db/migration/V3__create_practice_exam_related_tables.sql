@@ -82,7 +82,7 @@ CREATE TABLE questions (
      points INTEGER DEFAULT 1,
      version INTEGER NOT NULL DEFAULT 1,
      is_active BOOLEAN DEFAULT true,
-     created_by INTEGER REFERENCES users(id),
+     teacher_id INTEGER REFERENCES users(id),
      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
      updated_at TIMESTAMP NULL,
      deleted_at TIMESTAMP NULL
@@ -105,7 +105,7 @@ CREATE TABLE alternatives (
       is_correct BOOLEAN NOT NULL,
       version INTEGER NOT NULL DEFAULT 1,
       is_active BOOLEAN DEFAULT true,
-      created_by INTEGER REFERENCES users(id),
+      teacher_id INTEGER REFERENCES users(id),
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NULL,
       deleted_at TIMESTAMP NULL
