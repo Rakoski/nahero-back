@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5434/${NAHERO_DB}
+    username: ${NAHERO_DB_USER}
+    password: ${POSTGRES_PASSWORD}
+  test:
+    database:
+      replace: none
+
+spring.testcontainers:
+  postgresql:
+    port: 5434
