@@ -6,6 +6,7 @@ import br.com.naheroback.modules.exams.repositories.ExamRepository;
 import br.com.naheroback.modules.user.entities.User;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,6 +16,7 @@ public class CreateExamUseCase {
     private final CreateExamResponse createExamResponse;
 
     @Transactional
+    @Secured("IS_TEACHER")
     public CreateExamResponse execute(CreateExamRequest request) {
         User currentUser = AuthService.getUserFromToken();
         Exam exam = request.toDomain(currentUser);
