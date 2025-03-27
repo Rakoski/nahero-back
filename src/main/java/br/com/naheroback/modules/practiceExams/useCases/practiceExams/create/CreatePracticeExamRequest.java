@@ -1,8 +1,8 @@
-package br.com.naheroback.modules.practice_exams.useCases.practiceExams.create;
+package br.com.naheroback.modules.practiceExams.useCases.practiceExams.create;
 
 import br.com.naheroback.common.utils.ValidateNull;
 import br.com.naheroback.modules.exams.entities.Exam;
-import br.com.naheroback.modules.practice_exams.entities.PracticeExam;
+import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.user.entities.User;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

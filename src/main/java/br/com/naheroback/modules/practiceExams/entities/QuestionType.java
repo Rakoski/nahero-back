@@ -1,4 +1,4 @@
-package br.com.naheroback.modules.practice_exams.entities;
+package br.com.naheroback.modules.practiceExams.entities;
 
 import br.com.naheroback.common.entities.BaseEntity;
 import jakarta.persistence.*;
@@ -14,14 +14,11 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "practice_attempt_statuses")
-@SQLDelete(sql = "UPDATE practice_attempt_statuses SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@Table(name = "question_types")
+@SQLDelete(sql = "UPDATE question_types SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
-public class PracticeAttemptStatus extends BaseEntity {
+public class QuestionType extends BaseEntity {
 
     @Column(nullable = false, unique = true)
     private String name;
-    
-    @Column
-    private String description;
 }

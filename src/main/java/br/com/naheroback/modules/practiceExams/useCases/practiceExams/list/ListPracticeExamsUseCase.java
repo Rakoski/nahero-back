@@ -1,6 +1,6 @@
-package br.com.naheroback.modules.practice_exams.useCases.practiceExams.list;
+package br.com.naheroback.modules.practiceExams.useCases.practiceExams.list;
 
-import br.com.naheroback.modules.practice_exams.repositories.PracticeExamRepository;
+import br.com.naheroback.modules.practiceExams.repositories.PracticeExamRepository;
 import com.querydsl.core.types.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

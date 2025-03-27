@@ -1,4 +1,4 @@
-package br.com.naheroback.modules.practice_exams.entities;
+package br.com.naheroback.modules.practiceExams.entities;
 
 import br.com.naheroback.common.entities.BaseEntity;
 import br.com.naheroback.modules.user.entities.User;
@@ -15,34 +15,27 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "questions")
-@SQLDelete(sql = "UPDATE questions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@Table(name = "alternatives")
+@SQLDelete(sql = "UPDATE alternatives SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
-public class Question extends BaseEntity {
+public class Alternative extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "base_question_id")
-    private Question baseQuestion;
+    @JoinColumn(name = "base_alternative_id")
+    private Alternative baseAlternative;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "practice_exam_id")
-    private PracticeExam practiceExam;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_type_id")
-    private QuestionType questionType;
-    
-    @Column(nullable = false)
-    private String content;
+    @JoinColumn(name = "question_id")
+    private Question question;
     
     @Column(name = "image_url")
     private String imageUrl;
     
-    @Column
-    private String explanation;
+    @Column(nullable = false)
+    private String content;
     
-    @Column
-    private Integer points = 1;
+    @Column(name = "is_correct", nullable = false)
+    private Boolean isCorrect;
     
     @Column(nullable = false)
     private Integer version = 1;

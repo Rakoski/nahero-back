@@ -1,8 +1,8 @@
-package br.com.naheroback.modules.practice_exams.useCases.practiceExams.create;
+package br.com.naheroback.modules.practiceExams.useCases.practiceExams.create;
 
 import br.com.naheroback.modules.auth.services.AuthService;
-import br.com.naheroback.modules.practice_exams.entities.PracticeExam;
-import br.com.naheroback.modules.practice_exams.repositories.PracticeExamRepository;
+import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
+import br.com.naheroback.modules.practiceExams.repositories.PracticeExamRepository;
 import br.com.naheroback.modules.user.entities.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
