@@ -1,7 +1,7 @@
-package br.com.naheroback.modules.practice_exams.repositories;
+package br.com.naheroback.modules.practiceExams.repositories;
 
 import br.com.naheroback.common.repositories.BaseRepository;
-import br.com.naheroback.modules.practice_exams.entities.PracticeExam;
+import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 
 public interface PracticeExamRepository extends BaseRepository<PracticeExam, Integer> {
 }

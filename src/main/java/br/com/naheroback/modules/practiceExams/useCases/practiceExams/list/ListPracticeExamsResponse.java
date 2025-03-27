@@ -1,6 +1,6 @@
-package br.com.naheroback.modules.practice_exams.useCases.practiceExams.list;
+package br.com.naheroback.modules.practiceExams.useCases.practiceExams.list;
 
-import br.com.naheroback.modules.practice_exams.entities.PracticeExam;
+import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

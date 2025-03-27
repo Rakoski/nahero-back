@@ -1,4 +1,4 @@
-package br.com.naheroback.modules.practice_exams.entities;
+package br.com.naheroback.modules.practiceExams.entities;
 
 import br.com.naheroback.common.entities.BaseEntity;
 import jakarta.persistence.*;
