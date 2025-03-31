@@ -1,10 +1,12 @@
-package br.com.naheroback.modules.practiceExams.useCases.practiceExams.list;
+package br.com.naheroback.modules.practiceExams.useCases.practiceExam.list;
 
 import br.com.naheroback.modules.practiceExams.repositories.PracticeExamRepository;
 import com.querydsl.core.types.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,9 @@ public class ListPracticeExamsUseCase {
 
     @Transactional(readOnly = true)
     public Page<ListPracticeExamsResponse> execute(Predicate predicate, Pageable pagination) {
-        return practiceExamRepository.findAll(predicate, pagination).map(listPracticeExamsResponse::toPresentation);
+        Pageable sortedPageable = PageRequest.of(pagination.getPageNumber(), pagination.getPageSize(),
+                Sort.by(Sort.Order.asc("difficultyLevel")));
+
+        return practiceExamRepository.findAll(predicate, sortedPageable).map(listPracticeExamsResponse::toPresentation);
     }
 }
