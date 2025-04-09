@@ -1,10 +1,10 @@
 package br.com.naheroback.modules.practiceExams.controllers;
 
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
-import br.com.naheroback.modules.practiceExams.useCases.practiceExams.create.CreatePracticeExamRequest;
-import br.com.naheroback.modules.practiceExams.useCases.practiceExams.create.CreatePracticeExamUseCase;
-import br.com.naheroback.modules.practiceExams.useCases.practiceExams.list.ListPracticeExamsResponse;
-import br.com.naheroback.modules.practiceExams.useCases.practiceExams.list.ListPracticeExamsUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.practiceExam.create.CreatePracticeExamRequest;
+import br.com.naheroback.modules.practiceExams.useCases.practiceExam.create.CreatePracticeExamUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.practiceExam.list.ListPracticeExamsResponse;
+import br.com.naheroback.modules.practiceExams.useCases.practiceExam.list.ListPracticeExamsUseCase;
 import com.querydsl.core.types.Predicate;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

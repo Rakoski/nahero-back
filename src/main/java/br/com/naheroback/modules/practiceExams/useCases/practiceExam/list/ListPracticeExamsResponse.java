@@ -1,4 +1,4 @@
-package br.com.naheroback.modules.practiceExams.useCases.practiceExams.list;
+package br.com.naheroback.modules.practiceExams.useCases.practiceExam.list;
 
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import org.modelmapper.ModelMapper;
@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ListPracticeExamsResponse {
+    public Integer id;
     public String title;
     public String description;
     public Integer passingScore;

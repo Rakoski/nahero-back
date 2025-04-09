@@ -1,4 +1,4 @@
-package br.com.naheroback.modules.practiceExams.useCases.practiceExams.create;
+package br.com.naheroback.modules.practiceExams.useCases.practiceExam.create;
 
 import br.com.naheroback.common.utils.ValidateNull;
 import br.com.naheroback.modules.exams.entities.Exam;
