@@ -8,6 +8,8 @@ import br.com.naheroback.modules.practiceExams.repositories.QuestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static br.com.naheroback.common.utils.Constants.*;
@@ -25,8 +27,11 @@ public class ListQuestionsByStudentUseCase {
 
         Integer timeLimit = practiceExam.getTimeLimit();
 
-        return questionRepository.findAllByPracticeExamId(practiceExamId)
-                .stream()
+        List<Question> allQuestions = questionRepository.findAllByPracticeExamId(practiceExamId);
+        List<Question> shuffledQuestions = new ArrayList<>(allQuestions);
+        Collections.shuffle(shuffledQuestions);
+
+        return shuffledQuestions.stream()
                 .limit(MAX_EXAM_QUESTIONS)
                 .map(question -> listQuestionsByStudentResponse.toPresentation(question, timeLimit))
                 .toList();

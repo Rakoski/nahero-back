@@ -1,12 +1,10 @@
 package br.com.naheroback.modules.practiceExams.controllers;
 
-import br.com.naheroback.modules.practiceExams.entities.Question;
 import br.com.naheroback.modules.practiceExams.useCases.question.create.CreateQuestionRequest;
 import br.com.naheroback.modules.practiceExams.useCases.question.create.CreateQuestionUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.question.listStudent.ListQuestionsByStudentResponse;
 import br.com.naheroback.modules.practiceExams.useCases.question.listStudent.ListQuestionsByStudentUseCase;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
