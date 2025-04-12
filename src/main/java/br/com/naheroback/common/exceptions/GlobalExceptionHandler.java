@@ -2,6 +2,7 @@ package br.com.naheroback.common.exceptions;
 
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
+import br.com.naheroback.common.exceptions.custom.ValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -49,6 +50,20 @@ public class GlobalExceptionHandler {
         log.error("DuplicateException: {} - Path: {}", exception.getError(), exception.getPath());
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(exception);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    protected ResponseEntity<CustomException> validationImpediment(RuntimeException e, HttpServletRequest request) {
+        var exception = CustomException.builder()
+                .status(HttpStatus.PRECONDITION_FAILED)
+                .timestamp(Instant.now())
+                .error(e.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("ValidationException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(exception);
     }
 
     public void sendErrorResponse(HttpServletResponse response, HttpStatus status, String error, String path)
