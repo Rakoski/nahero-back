@@ -12,36 +12,45 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 public record CreateUserRequest(
-    @NotBlank(message = "Name is required") String name,
-    @Email @NotBlank(message = "Email is required") String email,
-    @CPF @Pattern(regexp = "^$|.+", message = "CPF cannot be blank") String cpf,
-    String passportNumber,
-    String bio,
-    @NotBlank(message = "Password is required") String password,
-    @NotBlank(message = "Phone is required") String phone,
-    String avatarUrl,
-    LocalDateTime emailConfirmedAt,
-    String externalCustomerId,
-    AddressInput address
-    ) {
+        @NotBlank(message = "Name is required") String name,
+        @Email @NotBlank(message = "Email is required") String email,
+        @CPF @Pattern(regexp = "^$|.+", message = "CPF cannot be blank if passport is not provided") String cpf,
+        @Pattern(regexp = "^$|.+", message = "Passport number cannot be blank if CPF is not provided") String passportNumber,
+        String bio,
+        @NotBlank(message = "Password is required") String password,
+        @NotBlank(message = "Phone is required") String phone,
+        String avatarUrl,
+        LocalDateTime emailConfirmedAt,
+        String externalCustomerId,
+        AddressInput address
+) {
+
+    public boolean isValid() {
+        return (cpf != null && !cpf.trim().isEmpty()) ||
+                (passportNumber != null && !passportNumber.trim().isEmpty());
+    }
 
     public record AddressInput(
-        @NotBlank(message = "Zip code is required") String zipCode,
-        @NotBlank(message = "Street is required") String street,
-        @Positive @NotBlank(message = "Number is required") String number,
-        String complement,
-        @NotBlank(message = "Neighborhood is required") String neighborhood,
-        @NotBlank(message = "City is required") String city,
-        @NotBlank(message = "State is required") String state,
-        String country
+            @NotBlank(message = "Zip code is required") String zipCode,
+            @NotBlank(message = "Street is required") String street,
+            @Positive @NotBlank(message = "Number is required") String number,
+            String complement,
+            @NotBlank(message = "Neighborhood is required") String neighborhood,
+            @NotBlank(message = "City is required") String city,
+            @NotBlank(message = "State is required") String state,
+            String country
     ) {
     }
 
     public static User toDomain(CreateUserRequest input) {
+        if (!input.isValid()) {
+            throw new IllegalArgumentException("Either CPF or passport number must be provided");
+        }
+
         final var user = new User();
         user.setName(input.name);
         user.setEmail(input.email);
-        user.setCpf(input.cpf.replaceAll("\\D", ""));
+        user.setCpf(input.cpf != null ? input.cpf.replaceAll("\\D", "") : null);
         user.setPassportNumber(input.passportNumber);
         user.setBio(input.bio);
         user.setPassword(input.password);
@@ -67,4 +76,3 @@ public record CreateUserRequest(
         return user;
     }
 }
-
