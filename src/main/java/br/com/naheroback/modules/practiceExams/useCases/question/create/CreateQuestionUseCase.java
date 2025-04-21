@@ -10,6 +10,7 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -21,22 +22,28 @@ public class CreateQuestionUseCase {
 
     @Transactional
     @Secured("IS_TEACHER")
-    public Question execute(CreateQuestionRequest request) {
+    public List<Question> execute(List<CreateQuestionRequest> requests) {
         int teacherId = AuthService.getUserFromToken().getId();
-        int version = 0;
+        List<Question> savedQuestions = new ArrayList<>();
 
-        if (Objects.nonNull(request.baseQuestionId())) {
-            version = questionRepository.findVersionByBaseQuestionId(request.baseQuestionId());
+        for (CreateQuestionRequest request : requests) {
+            int version = 0;
+
+            if (Objects.nonNull(request.baseQuestionId())) {
+                version = questionRepository.findVersionByBaseQuestionId(request.baseQuestionId());
+            }
+
+            Question question = CreateQuestionRequest.toDomain(request, teacherId, version + 1);
+            Question savedQuestion = questionRepository.save(question);
+
+            List<Alternative> alternatives = CreateQuestionRequest.alternativesToDomain(request, savedQuestion, version + 1);
+            if (!alternatives.isEmpty()) {
+                alternativeRepository.saveAll(alternatives);
+            }
+
+            savedQuestions.add(savedQuestion);
         }
 
-        Question question = CreateQuestionRequest.toDomain(request, teacherId, version + 1);
-        Question savedQuestion = questionRepository.save(question);
-
-        List<Alternative> alternatives = CreateQuestionRequest.alternativesToDomain(request, savedQuestion, version + 1);
-        if (!alternatives.isEmpty()) {
-            alternativeRepository.saveAll(alternatives);
-        }
-
-        return savedQuestion;
+        return savedQuestions;
     }
 }

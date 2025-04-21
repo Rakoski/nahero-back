@@ -1,5 +1,6 @@
 package br.com.naheroback.modules.user.useCases.user.create;
 
+import br.com.naheroback.common.utils.ValidateDependencies;
 import br.com.naheroback.modules.user.entities.Address;
 import br.com.naheroback.modules.user.entities.User;
 import jakarta.validation.constraints.Email;
@@ -51,7 +52,7 @@ public record CreateUserRequest(
         user.setName(input.name);
         user.setEmail(input.email);
         user.setCpf(input.cpf != null ? input.cpf.replaceAll("\\D", "") : null);
-        user.setPassportNumber(input.passportNumber);
+        user.setPassportNumber(ValidateDependencies.nullIfEmpty(input.passportNumber));
         user.setBio(input.bio);
         user.setPassword(input.password);
         user.setPhone(input.phone);
