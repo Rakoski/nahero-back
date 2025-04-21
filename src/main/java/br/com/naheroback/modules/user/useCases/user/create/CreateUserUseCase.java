@@ -49,7 +49,7 @@ public class CreateUserUseCase {
     private void validateDependencies(CreateUserRequest input) {
         validateUniqueEmail(input.email());
         validateUniqueCpf(input.cpf());
-        validateUniquePassportNumber(input.passportNumber());
+        if (!input.passportNumber().isEmpty()) validateUniquePassportNumber(input.passportNumber());
     }
 
     private void validateUniqueEmail(String email) {
@@ -67,10 +67,9 @@ public class CreateUserUseCase {
     }
 
     private void validateUniquePassportNumber(String passportNumber) {
-        if (Objects.nonNull(passportNumber)) {
-            if (this.userRepository.findByPassportNumber(passportNumber).isPresent()) {
+        if (Objects.nonNull(passportNumber) && this.userRepository.findByPassportNumber(passportNumber).isPresent()) {
                 throw DuplicateException.with(User.class, "passport", passportNumber);
             }
-        }
+
     }
 }
