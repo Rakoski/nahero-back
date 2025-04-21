@@ -17,4 +17,11 @@ public class ValidateDependencies {
         }
         return null;
     }
+
+    public static <T> T nullIfEmpty(T value) {
+        if (value instanceof String string) {
+            return string.isEmpty() ? null : value;
+        }
+        return value;
+    }
 }

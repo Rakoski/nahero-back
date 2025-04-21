@@ -21,7 +21,7 @@ public class QuestionController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void create(@Valid @RequestBody CreateQuestionRequest request) {
+    public void create(@Valid @RequestBody List<CreateQuestionRequest> request) {
         createQuestionUseCase.execute(request);
     }
 
