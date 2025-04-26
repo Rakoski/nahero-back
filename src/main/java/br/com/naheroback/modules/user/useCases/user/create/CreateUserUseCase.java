@@ -49,7 +49,7 @@ public class CreateUserUseCase {
     private void validateDependencies(CreateUserRequest input) {
         validateUniqueEmail(input.email());
         validateUniqueCpf(input.cpf());
-        if (!input.passportNumber().isEmpty()) validateUniquePassportNumber(input.passportNumber());
+        if (input.passportNumber() != null && !input.passportNumber().isEmpty()) validateUniquePassportNumber(input.passportNumber());
     }
 
     private void validateUniqueEmail(String email) {
