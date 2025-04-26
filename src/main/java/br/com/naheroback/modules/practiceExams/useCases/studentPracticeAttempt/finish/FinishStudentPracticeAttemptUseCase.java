@@ -245,7 +245,11 @@ public class FinishStudentPracticeAttemptUseCase {
         Map<Integer, Question> questionMap = questions.stream()
                 .collect(Collectors.toMap(Question::getId, q -> q));
 
-        int totalPoints = questions.stream().mapToInt(Question::getPoints).sum();
+        int totalPoints = questions.stream()
+                .map(question -> question.getPoints() != null ? question.getPoints() : 1)
+                .mapToInt(Integer::intValue)
+                .sum();
+
         int earnedPoints = 0;
 
         for (StudentAnswer answer : answers) {
