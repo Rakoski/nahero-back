@@ -11,14 +11,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    
     - name: Set up JDK 21
       uses: actions/setup-java@v3
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
-    - name: Run tests
-      run: mvn test
+  
+    
+    - name: Run tests using Docker Compose
+      run: |
+          cd ~/nahero/nahero-back
+          
+          git pull
+          
+          echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
+          
+          cd ../nahero-docker
+          docker compose pull backend-tests
+          docker compose up -d --build backend-tests
+    
 
   deploy:
     needs: test
