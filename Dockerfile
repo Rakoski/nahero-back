@@ -1,4 +1,4 @@
-FROM eclipse-temurin:23 AS build
+FROM eclipse-temurin:21-jdk-jammy AS build
 RUN apt-get update && apt-get install -y maven
 WORKDIR /app
 COPY pom.xml .
@@ -7,10 +7,11 @@ RUN mvn dependency:go-offline
 COPY src/ ./src/
 RUN mvn package -DskipTests
 
-FROM eclipse-temurin:23-jre-slim
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-RUN useradd -m naherouser && \
+RUN groupadd -r naherouser && \
+    useradd -r -g naherouser -m -d /home/naherouser naherouser && \
     mkdir -p /app && \
     chown -R naherouser:naherouser /app
 
@@ -18,8 +19,6 @@ COPY --from=build /app/target/*.jar app.jar
 RUN chown naherouser:naherouser /app/app.jar
 
 USER naherouser
-
-ENV SPRING_PROFILES_ACTIVE=production
 
 EXPOSE 8080
 
