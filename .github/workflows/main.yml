@@ -9,6 +9,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: nahero-vps
     
     steps:
     - name: Deploy to Server
@@ -18,20 +19,15 @@ jobs:
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          # Navigate to the project directory
           cd ~/nahero/nahero-back
           
-          # Pull the latest code
           git pull
           
-          # Login to Docker Hub
           echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
           
-          # Build and push the Docker image
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/nahero-backend:latest .
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/nahero-backend:latest
           
-          # Deploy using docker-compose
           cd ../nahero-docker
           docker-compose pull backend
           docker-compose up -d --build backend
