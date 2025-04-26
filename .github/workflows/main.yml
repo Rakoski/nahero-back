@@ -22,7 +22,6 @@ jobs:
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         passphrase: ${{ secrets.SSH_GITHUB_PASSWORD }}
-        password: ${{ secrets.SSH_PASSPHRASE }}
         script: |
           cd ~/nahero/nahero-back
           
@@ -63,7 +62,6 @@ jobs:
         username: ${{ secrets.SERVER_USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         passphrase: ${{ secrets.SSH_GITHUB_PASSWORD }}
-        password: ${{ secrets.SSH_PASSPHRASE }}
         script: |
           cd ~/nahero/nahero-back
           
