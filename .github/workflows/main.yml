@@ -73,4 +73,3 @@ jobs:
           cd ../nahero-docker
           docker compose pull backend
           docker compose up -d --build backend
-
