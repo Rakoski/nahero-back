@@ -7,12 +7,15 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
     environment: nahero-vps
     
     steps:
-    - name: Run Tests
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Run Tests on Server
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SERVER_HOST }}
@@ -24,11 +27,29 @@ jobs:
           git pull
           
           cd ../nahero-docker
-          docker compose pull backend-tests
-          docker compose up -d --build backend-tests
+          
+          echo "NAHERO_TEST_DB=nahero_test_db" >> .env
+          
+          docker compose stop backend-tests nahero-test-db || true
+          docker compose rm -f backend-tests nahero-test-db || true
+          
+          docker compose pull backend-tests nahero-test-db || true
+          
+          docker compose up -d nahero-test-db
+          echo "Waiting for test database to be ready..."
+          docker compose exec nahero-test-db bash -c 'until pg_isready -U ${NAHERO_DB_USER} -d ${NAHERO_TEST_DB}; do sleep 1; done'
+          
+          docker compose up --build --exit-code-from backend-tests backend-tests
+          
+          TEST_EXIT_CODE=$?
+          
+          docker compose stop backend-tests nahero-test-db
+          docker compose rm -f backend-tests nahero-test-db
+          
+          exit $TEST_EXIT_CODE
 
   deploy:
-    needs: test
+    needs: tests
     runs-on: ubuntu-latest
     environment: nahero-vps
     
