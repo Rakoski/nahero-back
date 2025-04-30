@@ -17,6 +17,7 @@ RUN groupadd -r naherouser && \
     chown -R naherouser:naherouser /app
 
 COPY --from=build /app/target/*.jar app.jar
+COPY keystore.p12 /app/keystore.p12
 RUN chown naherouser:naherouser /app/app.jar
 
 USER naherouser
@@ -24,6 +25,6 @@ USER naherouser
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
+  CMD curl -f https://localhost:8080/actuator/health || exit 1
 
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=70", "-jar", "/app/app.jar"]
