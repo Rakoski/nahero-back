@@ -2,6 +2,7 @@ package br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.
 
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
 import br.com.naheroback.common.exceptions.custom.ValidationException;
+import br.com.naheroback.common.utils.Constants;
 import br.com.naheroback.modules.practiceExams.entities.*;
 import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptStatusesEnum;
 import br.com.naheroback.modules.practiceExams.entities.enums.QuestionTypeEnum;
@@ -18,6 +19,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
+
 @Service
 @RequiredArgsConstructor
 public class FinishStudentPracticeAttemptUseCase {
@@ -28,18 +31,19 @@ public class FinishStudentPracticeAttemptUseCase {
     private final PracticeAttemptStatusRepository practiceAttemptStatusRepository;
 
     @Transactional
-    public Boolean execute(FinishStudentPracticeAttemptRequest request) {
+    public FinishStudentPracticeAttemptResponse execute(FinishStudentPracticeAttemptRequest request) {
         StudentPracticeAttempt attempt = validateAndRetrieveAttempt(request.studentPracticeAttemptId());
 
         updateAttemptStatus(attempt);
 
         List<StudentAnswer> answers = processAnswers(attempt, request.answers());
 
-        boolean hasPassed = calculateScoreAndUpdateAttempt(attempt, answers);
+        calculateScoreAndUpdateAttempt(attempt, answers);
 
         studentPracticeAttemptRepository.save(attempt);
         studentAnswerRepository.saveAll(answers);
-        return hasPassed;
+
+        return FinishStudentPracticeAttemptResponse.toPresentation(attempt, answers);
     }
 
     private StudentPracticeAttempt validateAndRetrieveAttempt(Integer attemptId) {
@@ -71,12 +75,18 @@ public class FinishStudentPracticeAttemptUseCase {
 
     private List<StudentAnswer> processAnswers(StudentPracticeAttempt attempt,
                                                List<FinishStudentPracticeAttemptRequest.AnswerRequest> answerRequests) {
-        List<Question> questions = questionRepository.findAllByPracticeExamId(attempt.getPracticeExam().getId());
+        List<Integer> questionIds = answerRequests.stream()
+                .map(request -> Integer.parseInt(request.questionId()))
+                .toList();
+
+        List<Question> questions = questionRepository.findAllById(questionIds);
+
         Map<Integer, Question> questionMap = questions.stream()
-                .collect(Collectors.toMap(Question::getId, q -> q));
+                .collect(Collectors.toMap(Question::getId, question -> question));
 
         Map<Integer, List<Alternative>> alternativesMap = new HashMap<>();
         Map<Integer, List<Integer>> correctAlternativesMap = new HashMap<>();
+
         loadAlternatives(questions, alternativesMap, correctAlternativesMap);
 
         List<StudentAnswer> answers = new ArrayList<>();
@@ -85,7 +95,9 @@ public class FinishStudentPracticeAttemptUseCase {
             Integer questionId = Integer.parseInt(answerRequest.questionId());
             Question question = questionMap.get(questionId);
 
-            if (question == null) continue;
+            if (question == null) {
+                throw NotFoundException.with(Question.class, "id", answerRequest.questionId());
+            }
 
             processAnswer(
                     answers,
@@ -162,7 +174,7 @@ public class FinishStudentPracticeAttemptUseCase {
                                        QuestionTypeEnum questionType) {
         Integer questionId = question.getId();
         List<Integer> selectedIds = answerRequest.alternativeIds() != null ?
-                answerRequest.alternativeIds().stream().map(Integer::parseInt).collect(Collectors.toList()) :
+                answerRequest.alternativeIds().stream().map(Integer::parseInt).collect(toList()) :
                 List.of();
 
         List<Integer> correctIds = correctAlternativesMap.getOrDefault(questionId, List.of());
@@ -239,31 +251,24 @@ public class FinishStudentPracticeAttemptUseCase {
         return answer;
     }
 
-    private boolean calculateScoreAndUpdateAttempt(StudentPracticeAttempt attempt,
-                                                List<StudentAnswer> answers) {
-        List<Question> questions = questionRepository.findAllByPracticeExamId(attempt.getPracticeExam().getId());
-        Map<Integer, Question> questionMap = questions.stream()
-                .collect(Collectors.toMap(Question::getId, q -> q));
-
-        int totalPoints = questions.stream().mapToInt(Question::getPoints).sum();
-        int earnedPoints = 0;
+    private void calculateScoreAndUpdateAttempt(StudentPracticeAttempt attempt, List<StudentAnswer> answers) {
+        int score = 0;
+        PracticeExam practiceExam = attempt.getPracticeExam();
 
         for (StudentAnswer answer : answers) {
             if (Boolean.TRUE.equals(answer.getIsCorrect())) {
-                Question question = questionMap.get(answer.getQuestionId());
-                if (question != null) {
-                    earnedPoints += question.getPoints();
-                }
+                score++;
             }
         }
 
-        int score = totalPoints > 0 ? (earnedPoints * 100) / totalPoints : 0;
+        Integer passingScore = practiceExam.getPassingScore();
+        int numberOfAttemptQuestions = practiceExam.getNumberOfQuestions() != null
+                ? practiceExam.getNumberOfQuestions() : Constants.MAX_EXAM_QUESTIONS;
 
-        Integer passingScore = attempt.getPracticeExam().getPassingScore();
-        boolean passed = passingScore != null && score >= passingScore;
+        int requiredCorrectAnswers = (int)((passingScore / 100.0) * numberOfAttemptQuestions);
+        boolean passed = score >= requiredCorrectAnswers;
 
         attempt.setScore(score);
         attempt.setPassed(passed);
-        return passed;
     }
 }
