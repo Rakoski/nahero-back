@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.practiceExams.useCases.question.listStudent;
 
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
+import br.com.naheroback.common.utils.Constants;
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.practiceExams.entities.Question;
 import br.com.naheroback.modules.practiceExams.repositories.PracticeExamRepository;
@@ -32,7 +33,7 @@ public class ListQuestionsByStudentUseCase {
         Collections.shuffle(shuffledQuestions);
 
         return shuffledQuestions.stream()
-                .limit(MAX_EXAM_QUESTIONS)
+                .limit(practiceExam.getNumberOfQuestions() != null ?  practiceExam.getNumberOfQuestions() : MAX_EXAM_QUESTIONS)
                 .map(question -> listQuestionsByStudentResponse.toPresentation(question, timeLimit))
                 .toList();
     }
