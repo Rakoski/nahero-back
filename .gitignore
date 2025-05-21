@@ -5,6 +5,7 @@ target/
 CLAUDE.md
 !**/src/main/**/target/
 !**/src/test/**/target/
+deploy.sh
 
 ### STS ###
 .apt_generated
