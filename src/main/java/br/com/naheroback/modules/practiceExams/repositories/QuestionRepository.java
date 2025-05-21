@@ -8,4 +8,5 @@ import java.util.List;
 public interface QuestionRepository extends BaseRepository<Question, Integer> {
     int findVersionByBaseQuestionId(int baseQuestionId);
     List<Question> findAllByPracticeExamId(int practiceExamId);
+    Integer countAllByPracticeExamId(int practiceExamId);
 }
