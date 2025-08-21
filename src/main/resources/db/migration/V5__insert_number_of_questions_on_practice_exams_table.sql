@@ -1,0 +1,1 @@
+ALTER TABLE practice_exams ADD COLUMN number_of_questions INTEGER

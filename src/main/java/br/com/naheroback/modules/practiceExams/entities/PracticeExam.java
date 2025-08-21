@@ -31,7 +31,7 @@ public class PracticeExam extends BaseEntity {
     @Column
     private String description;
     
-    @Column(name = "passing_score")
+    @Column(name = "passing_score", nullable = false)
     private Integer passingScore;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -46,4 +46,7 @@ public class PracticeExam extends BaseEntity {
     
     @Column(name = "is_active")
     private Boolean isActive = true;
+
+    @Column(name = "number_of_questions")
+    private Integer numberOfQuestions;
 }

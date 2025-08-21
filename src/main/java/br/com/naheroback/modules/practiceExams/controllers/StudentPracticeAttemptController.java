@@ -3,6 +3,7 @@ package br.com.naheroback.modules.practiceExams.controllers;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.create.CreateStudentPracticeAttemptRequest;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.create.CreateStudentPracticeAttemptUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.finish.FinishStudentPracticeAttemptRequest;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.finish.FinishStudentPracticeAttemptResponse;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.finish.FinishStudentPracticeAttemptUseCase;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -25,7 +26,7 @@ public class StudentPracticeAttemptController {
 
     @PutMapping("/finish")
     @ResponseStatus(HttpStatus.OK)
-    public Boolean finish(@Valid @RequestBody FinishStudentPracticeAttemptRequest request) {
+    public FinishStudentPracticeAttemptResponse finish(@Valid @RequestBody FinishStudentPracticeAttemptRequest request) {
         return finishStudentPracticeAttemptUseCase.execute(request);
     }
 }
