@@ -1,6 +1,6 @@
 # Nahero Backend
 
-Backend API service for the Nahero platform, available at [mrakoski.tech](http://mrakoski.tech).
+Backend API service for the Nahero platform, available at [nahero.site](http://nahero.site).
 
 ## Tech Stack
 
