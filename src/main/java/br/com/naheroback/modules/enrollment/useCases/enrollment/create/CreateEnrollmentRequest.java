@@ -9,8 +9,8 @@ import br.com.naheroback.modules.user.entities.User;
 import jakarta.validation.constraints.NotNull;
 
 public record CreateEnrollmentRequest(
-    @NotNull(message = "studentId is required") Integer studentId,
-    @NotNull(message = "examId is required") Integer examId
+    @NotNull(message = "{enrollment.studentid.required}") Integer studentId,
+    @NotNull(message = "{enrollment.examid.required}") Integer examId
 ) {
     public static Enrollment toDomain(CreateEnrollmentRequest request) {
         Enrollment enrollment = new Enrollment();

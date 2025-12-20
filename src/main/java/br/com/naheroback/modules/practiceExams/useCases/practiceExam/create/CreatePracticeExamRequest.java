@@ -9,12 +9,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 public record CreatePracticeExamRequest(
-    @NotNull(message = "examId is required") @Positive Integer examId,
-    @NotBlank(message = "title is required") String title,
-    @NotBlank(message = "description is required") String description,
-    @NotNull(message = "passingScore is required") @Positive Integer passingScore,
+    @NotNull(message = "{practiceexam.examid.required}") @Positive Integer examId,
+    @NotBlank(message = "{practiceexam.title.required}") String title,
+    @NotBlank(message = "{practiceexam.description.required}") String description,
+    @NotNull(message = "{practiceexam.passingscore.required}") @Positive Integer passingScore,
     Integer timeLimit,
-    @NotNull(message = "difficultyLevel is required") Integer difficultyLevel
+    @NotNull(message = "{practiceexam.difficultylevel.required}") Integer difficultyLevel
 ) {
     public static PracticeExam toDomain(CreatePracticeExamRequest input, User teacher) {
         PracticeExam practiceExam = new PracticeExam();
