@@ -55,7 +55,7 @@ public class ListPracticeExamsUseCase {
         }
 
         if (Objects.nonNull(request.category()) && !request.category().isBlank()) {
-            builder.and(qPracticeExam.exam.category.eq(request.category()));
+            builder.and(qPracticeExam.exam.category.containsIgnoreCase(request.category()));
         }
 
         if (Objects.nonNull(request.difficultyLevel())) {
