@@ -41,9 +41,6 @@ public class PracticeExam extends BaseEntity {
     @Column(name = "time_limit")
     private Integer timeLimit;
     
-    @Column(name = "difficulty_level")
-    private Integer difficultyLevel;
-    
     @Column(name = "is_active")
     private Boolean isActive = true;
 

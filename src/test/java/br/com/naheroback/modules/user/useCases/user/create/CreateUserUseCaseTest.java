@@ -52,29 +52,10 @@ class CreateUserUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        CreateUserRequest.AddressInput addressInput = new CreateUserRequest.AddressInput(
-                "12345-678",
-                "Test Street",
-                "123",
-                "Apt 101",
-                "Test Neighborhood",
-                "Test City",
-                "TS",
-                "Brazil"
-        );
-
         validRequest = new CreateUserRequest(
                 "Test User",
                 "test@example.com",
-                "123.456.789-09",
-                null,
-                "Test bio",
-                "password123",
-                "1234567890",
-                "https://example.com/avatar.jpg",
-                null,
-                null,
-                addressInput
+                "password123"
         );
 
         mockUser = new User();
@@ -111,7 +92,6 @@ class CreateUserUseCaseTest {
         assertEquals(mockResponse, result);
 
         verify(userRepository, times(1)).findByEmail(validRequest.email());
-        verify(userRepository, times(1)).findByCpf(validRequest.cpf());
         verify(passwordEncoder, times(1)).encode(validRequest.password());
         verify(addressRepository, times(1)).save(any(Address.class));
         verify(roleRepository, times(1)).findByName(RolesEnum.IS_STUDENT.name());
@@ -152,7 +132,6 @@ class CreateUserUseCaseTest {
         assertTrue(message.contains("User with cpf"));
 
         verify(userRepository, times(1)).findByEmail(validRequest.email());
-        verify(userRepository, times(1)).findByCpf(validRequest.cpf());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -173,7 +152,6 @@ class CreateUserUseCaseTest {
         assertTrue(exception.getMessage().contains(RolesEnum.IS_STUDENT.name()));
 
         verify(userRepository, times(1)).findByEmail(validRequest.email());
-        verify(userRepository, times(1)).findByCpf(validRequest.cpf());
         verify(passwordEncoder, times(1)).encode(validRequest.password());
         verify(roleRepository, times(1)).findByName(RolesEnum.IS_STUDENT.name());
         verify(userRepository, never()).save(any(User.class));

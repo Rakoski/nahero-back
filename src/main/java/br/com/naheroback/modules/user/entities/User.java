@@ -34,9 +34,6 @@ public class User extends BaseEntity {
     @Column(unique = true, length = 20)
     private String cpf;
 
-    @Column(unique = true, length = 30)
-    private String passportNumber;
-
     @Column(length = MAXIMUM_BIO_VALUE)
     private String bio;
 

@@ -14,7 +14,6 @@ public class GetUserByIdResponse {
     public String name;
     public String email;
     public String cpf;
-    public String passportNumber;
     public String bio;
     public String phone;
     public String avatarUrl;

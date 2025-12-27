@@ -24,7 +24,6 @@ public record CreatePracticeExamRequest(
         practiceExam.setPassingScore(input.passingScore);
         practiceExam.setTeacher(teacher);
         practiceExam.setTimeLimit(input.timeLimit);
-        practiceExam.setDifficultyLevel(input.difficultyLevel);
 
         return practiceExam;
     }

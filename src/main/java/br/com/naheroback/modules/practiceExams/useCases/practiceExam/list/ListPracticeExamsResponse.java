@@ -1,35 +1,31 @@
 package br.com.naheroback.modules.practiceExams.useCases.practiceExam.list;
 
-import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Component
+@Data
+@NoArgsConstructor
 public class ListPracticeExamsResponse {
-    public Integer id;
-    public String title;
-    public String description;
-    public Integer passingScore;
-    public Integer timeLimit;
-    public Integer difficultyLevel;
-    public ListPracticeExamsTeacher teacher;
-    public ListPracticeExamsExam exam;
+    private Integer id;
+    private String title;
+    private String description;
+    private Integer passingScore;
+    private Integer timeLimit;
+    private ListPracticeExamsTeacher teacher;
+    private ListPracticeExamsExam exam;
 
+    @Data
+    @NoArgsConstructor
     public static class ListPracticeExamsTeacher {
-        public Integer id;
-        public String name;
+        private Integer id;
+        private String name;
     }
 
+    @Data
+    @NoArgsConstructor
     public static class ListPracticeExamsExam {
-        public Integer id;
-        public String title;
-    }
-
-    @Autowired
-    private ModelMapper modelMapper;
-
-    public ListPracticeExamsResponse toPresentation(PracticeExam practiceExam) {
-        return modelMapper.map(practiceExam, ListPracticeExamsResponse.class);
+        private Integer id;
+        private String title;
+        private Integer difficultyLevel;
     }
 }

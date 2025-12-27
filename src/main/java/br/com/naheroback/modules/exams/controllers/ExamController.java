@@ -5,7 +5,6 @@ import br.com.naheroback.modules.exams.useCases.create.CreateExamResponse;
 import br.com.naheroback.modules.exams.useCases.create.CreateExamUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
