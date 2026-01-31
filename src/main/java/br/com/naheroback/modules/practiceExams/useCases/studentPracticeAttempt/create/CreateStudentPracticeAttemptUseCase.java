@@ -36,8 +36,7 @@ public class CreateStudentPracticeAttemptUseCase {
             .orElseThrow(() -> NotFoundException.with(PracticeExam.class, "id", practiceExamId));
 
         int examId = practiceExam.getExam().getId();
-        Exam exam = examRepository.findById(examId)
-            .orElseThrow(() -> NotFoundException.with(Exam.class, "id", examId));
+        Exam exam = examRepository.findById(examId).orElseThrow(() -> NotFoundException.with(Exam.class, "id", examId));
 
         Integer studentId = AuthService.getUserFromToken().getId();
         Optional<Enrollment> studentsEnrollment = enrollmentRepository.findByExamIdAndStudentId(exam.getId(), studentId);
