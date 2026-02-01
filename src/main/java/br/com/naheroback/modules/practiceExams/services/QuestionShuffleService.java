@@ -18,7 +18,9 @@ public class QuestionShuffleService {
     private final QuestionRepository questionRepository;
     private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
     
-    public List<Integer> getShuffledQuestionIds(Integer attemptId) {
+    private static final int MAX_EXAM_QUESTIONS = 70;
+
+    public List<Integer> getShuffledQuestionIds(Integer attemptId, String language) {
         StudentPracticeAttempt attempt = studentPracticeAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> NotFoundException.with(StudentPracticeAttempt.class, "attemptId", attemptId));
         
@@ -27,20 +29,25 @@ public class QuestionShuffleService {
         }
 
         Integer practiceExamId = attempt.getPracticeExam().getId();
+
         List<Integer> questionIds = new ArrayList<>(
-                questionRepository.findAllIdsByPracticeExamId(practiceExamId)
+                questionRepository.findAllIdsByPracticeExamIdAndLanguage(practiceExamId, language)
         );
 
         Collections.shuffle(questionIds);
 
-        attempt.setShuffledQuestionIds(questionIds);
+        List<Integer> cappedIds = questionIds.stream()
+                .limit(MAX_EXAM_QUESTIONS)
+                .toList();
+
+        attempt.setShuffledQuestionIds(cappedIds);
         studentPracticeAttemptRepository.save(attempt);
         
-        return questionIds;
+        return cappedIds;
     }
 
-    public List<Integer> getShuffledQuestionIdsForPage(Integer attemptId, int page, int size) {
-        List<Integer> allShuffledIds = getShuffledQuestionIds(attemptId);
+    public List<Integer> getShuffledQuestionIdsForPage(Integer attemptId, int page, int size, String language) {
+        List<Integer> allShuffledIds = getShuffledQuestionIds(attemptId, language);
 
         int fromIndex = page * size;
         int toIndex = Math.min(fromIndex + size, allShuffledIds.size());
@@ -49,4 +56,3 @@ public class QuestionShuffleService {
         return allShuffledIds.subList(fromIndex, toIndex);
     }
 }
-

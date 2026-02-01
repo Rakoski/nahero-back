@@ -19,7 +19,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "student_practice_attempts")
+@Table(name = "student_practice_attempts", indexes = {
+    @Index(name = "idx_student_practice_attempts_enrollment", columnList = "enrollment_id"),
+    @Index(name = "idx_student_practice_attempts_practice_exam", columnList = "practice_exam_id")
+})
 @SQLDelete(sql = "UPDATE student_practice_attempts SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class StudentPracticeAttempt extends BaseEntity {

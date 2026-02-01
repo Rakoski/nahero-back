@@ -14,7 +14,10 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "student_answers")
+@Table(name = "student_answers", indexes = {
+    @Index(name = "idx_student_answers_attempt", columnList = "student_practice_attempt_id"),
+    @Index(name = "idx_student_answers_question", columnList = "question_id, question_version")
+})
 @SQLDelete(sql = "UPDATE student_answers SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class StudentAnswer extends BaseEntity {

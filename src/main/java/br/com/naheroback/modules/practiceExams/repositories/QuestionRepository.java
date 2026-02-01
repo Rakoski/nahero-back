@@ -20,4 +20,7 @@ public interface QuestionRepository extends BaseRepository<Question, Integer> {
 
     @Query("SELECT q.id FROM Question q WHERE q.practiceExam.id = :practiceExamId")
     List<Integer> findAllIdsByPracticeExamId(@Param("practiceExamId") Integer practiceExamId);
+
+    @Query("SELECT q.id FROM Question q WHERE q.practiceExam.id = :practiceExamId AND q.language = :language")
+    List<Integer> findAllIdsByPracticeExamIdAndLanguage(@Param("practiceExamId") Integer practiceExamId, @Param("language") String language);
 }
