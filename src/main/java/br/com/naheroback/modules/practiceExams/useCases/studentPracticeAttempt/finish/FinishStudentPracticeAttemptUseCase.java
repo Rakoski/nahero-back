@@ -95,9 +95,7 @@ public class FinishStudentPracticeAttemptUseCase {
             Integer questionId = Integer.parseInt(answerRequest.questionId());
             Question question = questionMap.get(questionId);
 
-            if (question == null) {
-                throw NotFoundException.with(Question.class, "id", answerRequest.questionId());
-            }
+            if (question == null) throw NotFoundException.with(Question.class, "id", answerRequest.questionId());
 
             processAnswer(
                     answers,
@@ -255,11 +253,7 @@ public class FinishStudentPracticeAttemptUseCase {
         int score = 0;
         PracticeExam practiceExam = attempt.getPracticeExam();
 
-        for (StudentAnswer answer : answers) {
-            if (Boolean.TRUE.equals(answer.getIsCorrect())) {
-                score++;
-            }
-        }
+        for (StudentAnswer answer : answers) if (Boolean.TRUE.equals(answer.getIsCorrect())) score++;
 
         Integer passingScore = practiceExam.getPassingScore();
         int numberOfAttemptQuestions = practiceExam.getNumberOfQuestions() != null
