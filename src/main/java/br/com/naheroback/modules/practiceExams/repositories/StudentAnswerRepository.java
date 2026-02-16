@@ -7,7 +7,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface StudentAnswerRepository extends BaseRepository<StudentAnswer, Integer> {
+
+    List<StudentAnswer> findAllByStudentPracticeAttemptId(Integer studentPracticeAttemptId);
 
     Page<StudentAnswer> findByStudentPracticeAttemptId(Integer studentPracticeAttemptId, Pageable pageable);
 
@@ -19,6 +23,12 @@ public interface StudentAnswerRepository extends BaseRepository<StudentAnswer, I
         AND (
             CAST(:questionContent AS string) IS NULL
             OR LOWER(q.content) LIKE LOWER(CONCAT('%', CAST(:questionContent AS string), '%'))
+        )
+        AND sa.id IN (
+            SELECT MIN(sa2.id)
+            FROM StudentAnswer sa2
+            WHERE sa2.studentPracticeAttempt.id = :attemptId\s
+            GROUP BY sa2.questionId
         )
     """)
     Page<StudentAnswer> findByAttemptIdWithFilters(

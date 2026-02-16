@@ -18,7 +18,7 @@ public class QuestionShuffleService {
     private final QuestionRepository questionRepository;
     private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
     
-    private static final int MAX_EXAM_QUESTIONS = 70;
+    public static final int DEFAULT_MAX_EXAM_QUESTIONS = 70;
 
     public List<Integer> getShuffledQuestionIds(Integer attemptId, String language) {
         StudentPracticeAttempt attempt = studentPracticeAttemptRepository.findById(attemptId)
@@ -29,6 +29,7 @@ public class QuestionShuffleService {
         }
 
         Integer practiceExamId = attempt.getPracticeExam().getId();
+        int maxQuestions = getMaxQuestionsForExam(attempt);
 
         List<Integer> questionIds = new ArrayList<>(
                 questionRepository.findAllIdsByPracticeExamIdAndLanguage(practiceExamId, language)
@@ -37,13 +38,18 @@ public class QuestionShuffleService {
         Collections.shuffle(questionIds);
 
         List<Integer> cappedIds = questionIds.stream()
-                .limit(MAX_EXAM_QUESTIONS)
+                .limit(maxQuestions)
                 .toList();
 
         attempt.setShuffledQuestionIds(cappedIds);
         studentPracticeAttemptRepository.save(attempt);
         
         return cappedIds;
+    }
+
+    public int getMaxQuestionsForExam(StudentPracticeAttempt attempt) {
+        Integer numberOfQuestions = attempt.getPracticeExam().getNumberOfQuestions();
+        return numberOfQuestions != null ? numberOfQuestions : DEFAULT_MAX_EXAM_QUESTIONS;
     }
 
     public List<Integer> getShuffledQuestionIdsForPage(Integer attemptId, int page, int size, String language) {

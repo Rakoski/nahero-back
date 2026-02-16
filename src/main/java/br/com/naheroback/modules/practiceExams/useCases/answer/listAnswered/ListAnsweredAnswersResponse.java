@@ -43,8 +43,9 @@ public class ListAnsweredAnswersResponse {
         private String imageUrl;
         private Boolean isCorrect;
         private Boolean isActive;
+        private Boolean wasSelected;
 
-        public static AlternativeResponse fromEntity(Alternative alternative) {
+        public static AlternativeResponse fromEntity(Alternative alternative, Integer selectedAlternativeId) {
             return AlternativeResponse.builder()
                     .alternativeId(alternative.getId())
                     .alternativeVersion(alternative.getVersion())
@@ -52,6 +53,7 @@ public class ListAnsweredAnswersResponse {
                     .imageUrl(alternative.getImageUrl())
                     .isCorrect(alternative.getIsCorrect())
                     .isActive(alternative.getIsActive())
+                    .wasSelected(alternative.getId().equals(selectedAlternativeId))
                     .build();
         }
     }
@@ -75,7 +77,7 @@ public class ListAnsweredAnswersResponse {
                 .questionType(question.getQuestionType().getName())
                 .explanation(question.getExplanation())
                 .alternatives(alternatives.stream()
-                        .map(AlternativeResponse::fromEntity)
+                        .map(alt -> AlternativeResponse.fromEntity(alt, answer.getSelectedAlternativeId()))
                         .toList())
                 .build();
     }

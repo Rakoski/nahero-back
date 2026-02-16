@@ -9,6 +9,8 @@ import lombok.Data;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Data
 public class FinishStudentPracticeAttemptResponse {
@@ -24,6 +26,7 @@ public class FinishStudentPracticeAttemptResponse {
     private Integer passingPercentageScore;
     private String attemptStatus;
     private Integer numberOfQuestions;
+    private List<Integer> incorrectQuestionIds;
 
     public static FinishStudentPracticeAttemptResponse toPresentation(StudentPracticeAttempt attempt, List<StudentAnswer> answers) {
         FinishStudentPracticeAttemptResponse response = new FinishStudentPracticeAttemptResponse();
@@ -31,13 +34,27 @@ public class FinishStudentPracticeAttemptResponse {
 
         response.setPassed(attempt.getPassed());
         response.setScore(attempt.getScore());
-        response.setAnswers(answers.size());
 
-        int correct = (int) answers.stream().filter(a -> Boolean.TRUE.equals(a.getIsCorrect())).count();
-        int incorrect = (int) answers.stream().filter(a -> Boolean.FALSE.equals(a.getIsCorrect())).count();
+        Map<Integer, Boolean> questionResults = answers.stream()
+                .collect(Collectors.toMap(
+                        StudentAnswer::getQuestionId,
+                        StudentAnswer::getIsCorrect,
+                        (existing, replacement) -> existing
+                ));
 
-        response.setCorrectAnswers(correct);
-        response.setIncorrectAnswers(incorrect);
+        List<Integer> incorrectIds = questionResults.entrySet().stream()
+                .filter(entry -> Boolean.FALSE.equals(entry.getValue()))
+                .map(Map.Entry::getKey)
+                .toList();
+
+        int correctCount = (int) questionResults.values().stream()
+                .filter(Boolean.TRUE::equals)
+                .count();
+
+        response.setIncorrectQuestionIds(incorrectIds);
+        response.setCorrectAnswers(correctCount);
+        response.setIncorrectAnswers(incorrectIds.size());
+        response.setAnswers(questionResults.size());
 
         response.setStartTime(attempt.getStartTime());
         response.setEndTime(attempt.getEndTime());

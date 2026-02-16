@@ -26,8 +26,6 @@ public class ListQuestionsByStudentUseCase {
     private final ListQuestionsByStudentResponse listQuestionsByStudentResponse;
     private final QuestionShuffleService questionShuffleService;
 
-    private static final int MAX_EXAM_QUESTIONS = 70;
-
     public Page<ListQuestionsByStudentResponse> execute(int attemptId, Pageable pageable, String language) {
         StudentPracticeAttempt attempt = studentPracticeAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> NotFoundException.with(StudentPracticeAttempt.class, "attemptId", attemptId));
@@ -35,8 +33,9 @@ public class ListQuestionsByStudentUseCase {
         PracticeExam practiceExam = attempt.getPracticeExam();
         Integer timeLimit = practiceExam.getTimeLimit();
 
+        int maxQuestionsForExam = questionShuffleService.getMaxQuestionsForExam(attempt);
         Integer dbCount = questionRepository.countAllByPracticeExamId(practiceExam.getId());
-        int effectiveTotal = Math.min(dbCount, MAX_EXAM_QUESTIONS);
+        int effectiveTotal = Math.min(dbCount, maxQuestionsForExam);
 
         List<Integer> shuffledIdsForPage = questionShuffleService.getShuffledQuestionIdsForPage(
                 attemptId,

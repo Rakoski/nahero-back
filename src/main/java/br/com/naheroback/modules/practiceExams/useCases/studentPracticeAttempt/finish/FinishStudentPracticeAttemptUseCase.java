@@ -19,8 +19,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.toList;
-
 @Service
 @RequiredArgsConstructor
 public class FinishStudentPracticeAttemptUseCase {
@@ -31,7 +29,7 @@ public class FinishStudentPracticeAttemptUseCase {
     private final PracticeAttemptStatusRepository practiceAttemptStatusRepository;
 
     @Transactional
-    public FinishStudentPracticeAttemptResponse execute(FinishStudentPracticeAttemptRequest request) {
+    public void execute(FinishStudentPracticeAttemptRequest request) {
         StudentPracticeAttempt attempt = validateAndRetrieveAttempt(request.studentPracticeAttemptId());
 
         updateAttemptStatus(attempt);
@@ -42,8 +40,6 @@ public class FinishStudentPracticeAttemptUseCase {
 
         studentPracticeAttemptRepository.save(attempt);
         studentAnswerRepository.saveAll(answers);
-
-        return FinishStudentPracticeAttemptResponse.toPresentation(attempt, answers);
     }
 
     private StudentPracticeAttempt validateAndRetrieveAttempt(Integer attemptId) {
@@ -134,7 +130,7 @@ public class FinishStudentPracticeAttemptUseCase {
                                Map<Integer, List<Integer>> correctAlternativesMap) {
         Integer questionTypeId = question.getQuestionType().getId();
 
-        QuestionTypeEnum questionType = getQuestionTypeFromId(questionTypeId);
+        QuestionTypeEnum questionType = QuestionTypeEnum.fromId(questionTypeId);
 
         switch (questionType) {
             case MULTIPLE_CHOICE, TRUE_FALSE, OBJECTIVE ->
@@ -154,14 +150,6 @@ public class FinishStudentPracticeAttemptUseCase {
         }
     }
 
-    private QuestionTypeEnum getQuestionTypeFromId(Integer typeId) {
-        for (QuestionTypeEnum type : QuestionTypeEnum.values()) {
-            if (type.getId() == typeId) {
-                return type;
-            }
-        }
-        return QuestionTypeEnum.MULTIPLE_CHOICE;
-    }
 
     private void processChoiceQuestion(List<StudentAnswer> answers,
                                        Question question,
@@ -172,7 +160,7 @@ public class FinishStudentPracticeAttemptUseCase {
                                        QuestionTypeEnum questionType) {
         Integer questionId = question.getId();
         List<Integer> selectedIds = answerRequest.alternativeIds() != null ?
-                answerRequest.alternativeIds().stream().map(Integer::parseInt).collect(toList()) :
+                answerRequest.alternativeIds().stream().map(Integer::parseInt).toList() :
                 List.of();
 
         List<Integer> correctIds = correctAlternativesMap.getOrDefault(questionId, List.of());
@@ -238,9 +226,7 @@ public class FinishStudentPracticeAttemptUseCase {
         return answer;
     }
 
-    private StudentAnswer createEmptyAnswer(Question question,
-                                            StudentPracticeAttempt attempt,
-                                            Boolean isCorrect) {
+    private StudentAnswer createEmptyAnswer(Question question, StudentPracticeAttempt attempt, Boolean isCorrect) {
         StudentAnswer answer = new StudentAnswer();
         answer.setStudentPracticeAttempt(attempt);
         answer.setQuestionId(question.getId());
@@ -250,19 +236,22 @@ public class FinishStudentPracticeAttemptUseCase {
     }
 
     private void calculateScoreAndUpdateAttempt(StudentPracticeAttempt attempt, List<StudentAnswer> answers) {
-        int score = 0;
+        int actualScore = (int) answers.stream()
+                .filter(a -> Boolean.TRUE.equals(a.getIsCorrect()))
+                .map(StudentAnswer::getQuestionId)
+                .distinct()
+                .count();
+
         PracticeExam practiceExam = attempt.getPracticeExam();
-
-        for (StudentAnswer answer : answers) if (Boolean.TRUE.equals(answer.getIsCorrect())) score++;
-
         Integer passingScore = practiceExam.getPassingScore();
+
         int numberOfAttemptQuestions = practiceExam.getNumberOfQuestions() != null
                 ? practiceExam.getNumberOfQuestions() : Constants.MAX_EXAM_QUESTIONS;
 
-        int requiredCorrectAnswers = (int)((passingScore / 100.0) * numberOfAttemptQuestions);
-        boolean passed = score >= requiredCorrectAnswers;
+        double requiredCorrect = (passingScore / 100.0) * numberOfAttemptQuestions;
+        boolean passed = actualScore >= requiredCorrect;
 
-        attempt.setScore(score);
+        attempt.setScore(actualScore);
         attempt.setPassed(passed);
     }
 }
