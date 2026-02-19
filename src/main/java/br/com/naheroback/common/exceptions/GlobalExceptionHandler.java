@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -94,6 +95,24 @@ public class GlobalExceptionHandler {
         log.error("HttpRequestMethodNotSupportedException: {} - Path: {}", exception.getError(), exception.getPath());
 
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(exception);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    protected ResponseEntity<CustomException> methodArgumentTypeMismatch(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
+        String paramName = e.getName();
+        String requiredType = e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "unknown";
+        String errorMessage = String.format("Invalid value for parameter '%s'. Expected type: %s", paramName, requiredType);
+
+        var exception = CustomException.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .timestamp(Instant.now())
+                .error(errorMessage)
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("MethodArgumentTypeMismatchException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception);
     }
 
     public void sendErrorResponse(HttpServletResponse response, HttpStatus status, String error, String path)
