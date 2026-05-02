@@ -9,6 +9,8 @@ import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.g
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getResult.GetResultResponse;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getResult.GetResultUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getDashboardSummary.GetDashboardSummaryResponse;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getDashboardSummary.GetDashboardSummaryUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,6 +30,7 @@ public class StudentPracticeAttemptController {
     private final FinishStudentPracticeAttemptUseCase finishStudentPracticeAttemptUseCase;
     private final GetResultUseCase getResultUseCase;
     private final GetHistoryUseCase getHistoryUseCase;
+    private final GetDashboardSummaryUseCase getDashboardSummaryUseCase;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -60,5 +62,10 @@ public class StudentPracticeAttemptController {
                 endDate != null ? endDate.atTime(23, 59, 59) : null,
                 score);
         return getHistoryUseCase.execute(filter, pageable);
+    }
+
+    @GetMapping("/dashboard-summary")
+    public GetDashboardSummaryResponse getDashboardSummary() {
+        return getDashboardSummaryUseCase.execute();
     }
 }

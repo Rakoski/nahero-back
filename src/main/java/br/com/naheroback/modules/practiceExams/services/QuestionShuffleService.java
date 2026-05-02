@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.practiceExams.services;
 
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
+import br.com.naheroback.common.exceptions.custom.UnprocessableEntityException;
 import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
 import br.com.naheroback.modules.practiceExams.repositories.QuestionRepository;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
@@ -34,6 +35,13 @@ public class QuestionShuffleService {
         List<Integer> questionIds = new ArrayList<>(
                 questionRepository.findAllIdsByPracticeExamIdAndLanguage(practiceExamId, language)
         );
+
+        if (questionIds.size() < maxQuestions) {
+            throw new UnprocessableEntityException(
+                    "Practice exam %d does not have enough questions in language '%s' (required: %d, available: %d)"
+                            .formatted(practiceExamId, language, maxQuestions, questionIds.size())
+            );
+        }
 
         Collections.shuffle(questionIds);
 

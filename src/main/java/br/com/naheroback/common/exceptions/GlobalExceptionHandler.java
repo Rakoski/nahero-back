@@ -2,6 +2,7 @@ package br.com.naheroback.common.exceptions;
 
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
+import br.com.naheroback.common.exceptions.custom.UnprocessableEntityException;
 import br.com.naheroback.common.exceptions.custom.ValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -67,6 +68,20 @@ public class GlobalExceptionHandler {
         log.error("ValidationException: {} - Path: {}", exception.getError(), exception.getPath());
 
         return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(exception);
+    }
+
+    @ExceptionHandler(UnprocessableEntityException.class)
+    protected ResponseEntity<CustomException> unprocessableEntity(RuntimeException e, HttpServletRequest request) {
+        var exception = CustomException.builder()
+                .status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .timestamp(Instant.now())
+                .error(e.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("UnprocessableEntityException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(exception);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
