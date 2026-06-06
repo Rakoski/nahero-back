@@ -1,5 +1,6 @@
 package br.com.naheroback.modules.practiceExams.controllers;
 
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.abandon.AbandonStudentPracticeAttemptUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.create.CreateStudentPracticeAttemptRequest;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.create.CreateStudentPracticeAttemptUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.finish.FinishStudentPracticeAttemptRequest;
@@ -7,6 +8,8 @@ import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.f
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryFilterDTO;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryResponse;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.timeout.TimeOutStudentPracticeAttemptRequest;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.timeout.TimeOutStudentPracticeAttemptUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getResult.GetResultResponse;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getResult.GetResultUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getDashboardSummary.GetDashboardSummaryResponse;
@@ -21,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Locale;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,20 +32,35 @@ import java.time.LocalDate;
 public class StudentPracticeAttemptController {
     private final CreateStudentPracticeAttemptUseCase createStudentPracticeAttemptUseCase;
     private final FinishStudentPracticeAttemptUseCase finishStudentPracticeAttemptUseCase;
+    private final AbandonStudentPracticeAttemptUseCase abandonStudentPracticeAttemptUseCase;
+    private final TimeOutStudentPracticeAttemptUseCase timeOutStudentPracticeAttemptUseCase;
     private final GetResultUseCase getResultUseCase;
     private final GetHistoryUseCase getHistoryUseCase;
     private final GetDashboardSummaryUseCase getDashboardSummaryUseCase;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Integer create(@Valid @RequestBody CreateStudentPracticeAttemptRequest request) {
-        return createStudentPracticeAttemptUseCase.execute(request);
+    public Integer create(@Valid @RequestBody CreateStudentPracticeAttemptRequest request, Locale locale) {
+        return createStudentPracticeAttemptUseCase.execute(request, locale);
     }
 
     @PutMapping("/finish")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void finish(@Valid @RequestBody FinishStudentPracticeAttemptRequest request) {
         finishStudentPracticeAttemptUseCase.execute(request);
+    }
+
+    @PutMapping("/{attemptId}/abandon")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void abandon(@PathVariable Integer attemptId) {
+        abandonStudentPracticeAttemptUseCase.execute(attemptId);
+    }
+
+    @PutMapping("/{attemptId}/timeout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void timeout(@PathVariable Integer attemptId,
+                        @Valid @RequestBody TimeOutStudentPracticeAttemptRequest request) {
+        timeOutStudentPracticeAttemptUseCase.execute(attemptId, request);
     }
 
     @GetMapping("/{attemptId}/result")

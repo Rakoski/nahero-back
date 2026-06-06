@@ -13,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Locale;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,9 +30,7 @@ public class QuestionController {
     @GetMapping("/list-student/{attemptId}")
     public Page<ListQuestionsByStudentResponse> listStudent(
             @Positive @PathVariable Integer attemptId,
-            Pageable pageable,
-            Locale locale) {
-        String language = locale.getLanguage();
-        return listQuestionsByStudentUseCase.execute(attemptId, pageable, language);
+            Pageable pageable) {
+        return listQuestionsByStudentUseCase.execute(attemptId, pageable);
     }
 }

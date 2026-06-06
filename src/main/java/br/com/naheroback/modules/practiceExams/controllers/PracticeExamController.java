@@ -3,6 +3,8 @@ package br.com.naheroback.modules.practiceExams.controllers;
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.create.CreatePracticeExamRequest;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.create.CreatePracticeExamUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.practiceExam.getBySlug.GetPracticeExamBySlugResponse;
+import br.com.naheroback.modules.practiceExams.useCases.practiceExam.getBySlug.GetPracticeExamBySlugUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.list.ListPracticeExamsRequest;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.list.ListPracticeExamsResponse;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.list.ListPracticeExamsUseCase;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class PracticeExamController {
     private final CreatePracticeExamUseCase createPracticeExamUseCase;
     private final ListPracticeExamsUseCase listPracticeExamsUseCase;
+    private final GetPracticeExamBySlugUseCase getPracticeExamBySlugUseCase;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -36,5 +39,11 @@ public class PracticeExamController {
             Pageable pagination
     ) {
         return listPracticeExamsUseCase.execute(request, predicate, pagination);
+    }
+
+    @GetMapping("/by-slug/{slug}")
+    @ResponseStatus(HttpStatus.OK)
+    public GetPracticeExamBySlugResponse getBySlug(@PathVariable String slug) {
+        return getPracticeExamBySlugUseCase.execute(slug);
     }
 }

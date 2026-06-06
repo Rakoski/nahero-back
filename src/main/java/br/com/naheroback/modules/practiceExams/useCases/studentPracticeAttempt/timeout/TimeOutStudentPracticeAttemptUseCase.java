@@ -1,8 +1,10 @@
-package br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.finish;
+package br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.timeout;
 
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
 import br.com.naheroback.common.exceptions.custom.ValidationException;
-import br.com.naheroback.modules.practiceExams.entities.*;
+import br.com.naheroback.modules.practiceExams.entities.PracticeAttemptStatus;
+import br.com.naheroback.modules.practiceExams.entities.StudentAnswer;
+import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
 import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptStatusesEnum;
 import br.com.naheroback.modules.practiceExams.repositories.PracticeAttemptStatusRepository;
 import br.com.naheroback.modules.practiceExams.repositories.StudentAnswerRepository;
@@ -18,19 +20,20 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
-public class FinishStudentPracticeAttemptUseCase {
+public class TimeOutStudentPracticeAttemptUseCase {
     private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
     private final StudentAnswerRepository studentAnswerRepository;
     private final PracticeAttemptStatusRepository practiceAttemptStatusRepository;
     private final AttemptScoringService attemptScoringService;
 
     @Transactional
-    public void execute(FinishStudentPracticeAttemptRequest request) {
-        StudentPracticeAttempt attempt = validateAndRetrieveAttempt(request.studentPracticeAttemptId());
+    public void execute(Integer attemptId, TimeOutStudentPracticeAttemptRequest request) {
+        StudentPracticeAttempt attempt = validateAndRetrieveAttempt(attemptId);
 
-        updateAttemptStatus(attempt);
+        markTimedOut(attempt);
 
-        List<AttemptScoringService.AnswerData> answerData = request.answers().stream()
+        List<AttemptScoringService.AnswerData> answerData = (request.answers() == null ? List.<TimeOutStudentPracticeAttemptRequest.AnswerRequest>of() : request.answers())
+                .stream()
                 .map(answer -> new AttemptScoringService.AnswerData(
                         answer.questionId(),
                         answer.alternativeIds(),
@@ -49,25 +52,18 @@ public class FinishStudentPracticeAttemptUseCase {
                 .orElseThrow(() -> NotFoundException.with(StudentPracticeAttempt.class, "id", attemptId));
 
         if (!Objects.equals(attempt.getAttemptStatus().getId(), PracticeAttemptStatusesEnum.IN_PROGRESS.getId())) {
-            throw new ValidationException("Cannot finish an attempt that is not in progress");
+            throw new ValidationException("Cannot time out an attempt that is not in progress");
         }
 
         return attempt;
     }
 
-    private void updateAttemptStatus(StudentPracticeAttempt attempt) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime maxEndTime = attempt.getStartTime().plusMinutes(attempt.getPracticeExam().getTimeLimit());
+    private void markTimedOut(StudentPracticeAttempt attempt) {
+        Integer timedOutStatusId = PracticeAttemptStatusesEnum.TIMED_OUT.getId();
+        PracticeAttemptStatus timedOutStatus = practiceAttemptStatusRepository.findById(timedOutStatusId)
+                .orElseThrow(() -> NotFoundException.with(PracticeAttemptStatus.class, "id", timedOutStatusId));
 
-        boolean isTimedOut = now.isAfter(maxEndTime);
-        Integer statusId = isTimedOut
-                ? PracticeAttemptStatusesEnum.TIMED_OUT.getId()
-                : PracticeAttemptStatusesEnum.COMPLETED.getId();
-
-        PracticeAttemptStatus newStatus = practiceAttemptStatusRepository.findById(statusId)
-                .orElseThrow(() -> NotFoundException.with(PracticeAttemptStatus.class, "id", statusId));
-
-        attempt.setAttemptStatus(newStatus);
-        attempt.setEndTime(now);
+        attempt.setAttemptStatus(timedOutStatus);
+        attempt.setEndTime(LocalDateTime.now());
     }
 }

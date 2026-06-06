@@ -21,15 +21,16 @@ public class QuestionShuffleService {
     
     public static final int DEFAULT_MAX_EXAM_QUESTIONS = 70;
 
-    public List<Integer> getShuffledQuestionIds(Integer attemptId, String language) {
+    public List<Integer> getShuffledQuestionIds(Integer attemptId) {
         StudentPracticeAttempt attempt = studentPracticeAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> NotFoundException.with(StudentPracticeAttempt.class, "attemptId", attemptId));
-        
+
         if (attempt.getShuffledQuestionIds() != null && !attempt.getShuffledQuestionIds().isEmpty()) {
             return attempt.getShuffledQuestionIds();
         }
 
         Integer practiceExamId = attempt.getPracticeExam().getId();
+        String language = attempt.getLanguage();
         int maxQuestions = getMaxQuestionsForExam(attempt);
 
         List<Integer> questionIds = new ArrayList<>(
@@ -38,8 +39,8 @@ public class QuestionShuffleService {
 
         if (questionIds.size() < maxQuestions) {
             throw new UnprocessableEntityException(
-                    "Practice exam %d does not have enough questions in language '%s' (required: %d, available: %d)"
-                            .formatted(practiceExamId, language, maxQuestions, questionIds.size())
+                    "error.not_enough_questions",
+                    practiceExamId, language, maxQuestions, questionIds.size()
             );
         }
 
@@ -51,7 +52,7 @@ public class QuestionShuffleService {
 
         attempt.setShuffledQuestionIds(cappedIds);
         studentPracticeAttemptRepository.save(attempt);
-        
+
         return cappedIds;
     }
 
@@ -60,8 +61,8 @@ public class QuestionShuffleService {
         return numberOfQuestions != null ? numberOfQuestions : DEFAULT_MAX_EXAM_QUESTIONS;
     }
 
-    public List<Integer> getShuffledQuestionIdsForPage(Integer attemptId, int page, int size, String language) {
-        List<Integer> allShuffledIds = getShuffledQuestionIds(attemptId, language);
+    public List<Integer> getShuffledQuestionIdsForPage(Integer attemptId, int page, int size) {
+        List<Integer> allShuffledIds = getShuffledQuestionIds(attemptId);
 
         int fromIndex = page * size;
         int toIndex = Math.min(fromIndex + size, allShuffledIds.size());

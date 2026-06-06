@@ -54,4 +54,7 @@ public class StudentPracticeAttempt extends BaseEntity {
     @Column(name = "shuffled_question_ids", columnDefinition = "TEXT")
     @Convert(converter = IntegerListConverter.class)
     private List<Integer> shuffledQuestionIds;
+
+    @Column(nullable = false, length = 10)
+    private String language;
 }

@@ -1,11 +1,11 @@
-package br.com.naheroback.modules.practiceExams.useCases.practiceExam.list;
+package br.com.naheroback.modules.practiceExams.useCases.practiceExam.getBySlug;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class ListPracticeExamsResponse {
+public class GetPracticeExamBySlugResponse {
     private Integer id;
     private String slug;
     private String title;
@@ -13,19 +13,19 @@ public class ListPracticeExamsResponse {
     private Integer passingScore;
     private Integer timeLimit;
     private Integer numberOfQuestions;
-    private ListPracticeExamsTeacher teacher;
-    private ListPracticeExamsExam exam;
+    private GetPracticeExamBySlugTeacher teacher;
+    private GetPracticeExamBySlugExam exam;
 
     @Data
     @NoArgsConstructor
-    public static class ListPracticeExamsTeacher {
+    public static class GetPracticeExamBySlugTeacher {
         private Integer id;
         private String name;
     }
 
     @Data
     @NoArgsConstructor
-    public static class ListPracticeExamsExam {
+    public static class GetPracticeExamBySlugExam {
         private Integer id;
         private String title;
         private Integer difficultyLevel;

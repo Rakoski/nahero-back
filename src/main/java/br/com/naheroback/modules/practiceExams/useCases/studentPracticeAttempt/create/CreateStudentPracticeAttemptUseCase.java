@@ -17,6 +17,7 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -30,7 +31,7 @@ public class CreateStudentPracticeAttemptUseCase {
 
     @Transactional
     @Secured("IS_STUDENT")
-    public Integer execute(CreateStudentPracticeAttemptRequest request) {
+    public Integer execute(CreateStudentPracticeAttemptRequest request, Locale locale) {
         int practiceExamId = request.practiceExamId();
         PracticeExam practiceExam = practiceExamRepository.findById(practiceExamId)
             .orElseThrow(() -> NotFoundException.with(PracticeExam.class, "id", practiceExamId));
@@ -50,6 +51,7 @@ public class CreateStudentPracticeAttemptUseCase {
         }
 
         StudentPracticeAttempt studentPracticeAttempt = CreateStudentPracticeAttemptRequest.toDomain(enrollmentId, practiceExamId);
+        studentPracticeAttempt.setLanguage(locale.getLanguage());
         studentPracticeAttemptRepository.save(studentPracticeAttempt);
         return studentPracticeAttempt.getId();
     }

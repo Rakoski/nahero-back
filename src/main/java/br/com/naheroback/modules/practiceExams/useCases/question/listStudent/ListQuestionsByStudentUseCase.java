@@ -26,7 +26,7 @@ public class ListQuestionsByStudentUseCase {
     private final ListQuestionsByStudentResponse listQuestionsByStudentResponse;
     private final QuestionShuffleService questionShuffleService;
 
-    public Page<ListQuestionsByStudentResponse> execute(int attemptId, Pageable pageable, String language) {
+    public Page<ListQuestionsByStudentResponse> execute(int attemptId, Pageable pageable) {
         StudentPracticeAttempt attempt = studentPracticeAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> NotFoundException.with(StudentPracticeAttempt.class, "attemptId", attemptId));
 
@@ -40,8 +40,7 @@ public class ListQuestionsByStudentUseCase {
         List<Integer> shuffledIdsForPage = questionShuffleService.getShuffledQuestionIdsForPage(
                 attemptId,
                 pageable.getPageNumber(),
-                pageable.getPageSize(),
-                language
+                pageable.getPageSize()
         );
 
         if (shuffledIdsForPage.isEmpty()) {

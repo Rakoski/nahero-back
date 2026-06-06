@@ -30,7 +30,7 @@ public class ListPracticeExamsUseCase {
             Pageable pagination
     ) {
         Pageable sortedPageable = PageRequest.of(pagination.getPageNumber(), pagination.getPageSize(),
-                Sort.by(Sort.Order.asc("timeLimit")));
+                Sort.by(Sort.Order.asc("timeLimit"), Sort.Order.asc("id")));
 
         BooleanBuilder builder = new BooleanBuilder();
         if (predicate != null) builder.and(predicate);

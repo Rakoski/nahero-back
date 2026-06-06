@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
@@ -27,6 +29,7 @@ import java.time.Instant;
 @Slf4j(topic = "GLOBAL_EXCEPTION_HANDLER")
 public class GlobalExceptionHandler {
     private final ObjectMapper objectMapper;
+    private final MessageSource messageSource;
 
     @ExceptionHandler(NotFoundException.class)
     protected ResponseEntity<CustomException> resourceNotFound(RuntimeException e, HttpServletRequest request) {
@@ -71,11 +74,18 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UnprocessableEntityException.class)
-    protected ResponseEntity<CustomException> unprocessableEntity(RuntimeException e, HttpServletRequest request) {
+    protected ResponseEntity<CustomException> unprocessableEntity(UnprocessableEntityException e, HttpServletRequest request) {
+        String resolved = messageSource.getMessage(
+                e.getMessageKey(),
+                e.getArgs(),
+                e.getMessageKey(),
+                LocaleContextHolder.getLocale()
+        );
+
         var exception = CustomException.builder()
                 .status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .timestamp(Instant.now())
-                .error(e.getMessage())
+                .error(resolved)
                 .path(request.getRequestURI())
                 .build();
 
