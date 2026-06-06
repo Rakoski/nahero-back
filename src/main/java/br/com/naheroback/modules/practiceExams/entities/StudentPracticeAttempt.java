@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.practiceExams.entities;
 
 import br.com.naheroback.common.entities.BaseEntity;
+import br.com.naheroback.common.utils.IntegerListConverter;
 import br.com.naheroback.modules.enrollment.entities.Enrollment;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -11,13 +12,17 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "student_practice_attempts")
+@Table(name = "student_practice_attempts", indexes = {
+    @Index(name = "idx_student_practice_attempts_enrollment", columnList = "enrollment_id"),
+    @Index(name = "idx_student_practice_attempts_practice_exam", columnList = "practice_exam_id")
+})
 @SQLDelete(sql = "UPDATE student_practice_attempts SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class StudentPracticeAttempt extends BaseEntity {
@@ -45,4 +50,11 @@ public class StudentPracticeAttempt extends BaseEntity {
     
     @Column
     private Boolean passed;
+
+    @Column(name = "shuffled_question_ids", columnDefinition = "TEXT")
+    @Convert(converter = IntegerListConverter.class)
+    private List<Integer> shuffledQuestionIds;
+
+    @Column(nullable = false, length = 10)
+    private String language;
 }

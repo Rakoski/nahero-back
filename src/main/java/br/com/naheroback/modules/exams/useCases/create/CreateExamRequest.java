@@ -7,11 +7,11 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
 public record CreateExamRequest(
-    @NotBlank(message = "Title is required") String title,
+    @NotBlank(message = "{exam.title.required}") String title,
     String description,
     String category,
-    @Min(value = 1, message = "Difficulty level must be between 1 and 10")
-    @Max(value = 5, message = "Difficulty level must be between 1 and 10")
+    @Min(value = 1, message = "{exam.difficultylevel.min}")
+    @Max(value = 5, message = "{exam.difficultylevel.max}")
     Integer difficultyLevel,
     Boolean isActive
 ) {

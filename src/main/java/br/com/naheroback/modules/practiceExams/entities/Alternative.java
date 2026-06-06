@@ -15,7 +15,15 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "alternatives")
+@Table(name = "alternatives", indexes = {
+    @Index(name = "idx_alternatives_question_id", columnList = "question_id"),
+    @Index(name = "idx_alternatives_base_alternative_id", columnList = "base_alternative_id"),
+    @Index(name = "idx_alternatives_teacher_id", columnList = "teacher_id"),
+    @Index(name = "idx_alternatives_is_correct", columnList = "is_correct"),
+    @Index(name = "idx_alternatives_is_active", columnList = "is_active"),
+    @Index(name = "idx_alternatives_deleted_at", columnList = "deleted_at"),
+    @Index(name = "idx_alternatives_version", columnList = "base_alternative_id, version")
+})
 @SQLDelete(sql = "UPDATE alternatives SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class Alternative extends BaseEntity {

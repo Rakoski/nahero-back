@@ -7,6 +7,8 @@ import br.com.naheroback.modules.practiceExams.useCases.question.listStudent.Lis
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,10 +27,10 @@ public class QuestionController {
         createQuestionUseCase.execute(request);
     }
 
-    @GetMapping("/list-student/{practiceExamId}")
-    @ResponseStatus(HttpStatus.OK)
-    public List<ListQuestionsByStudentResponse> listStudent(@PathVariable @Positive Integer practiceExamId) {
-        return listQuestionsByStudentUseCase.execute(practiceExamId);
+    @GetMapping("/list-student/{attemptId}")
+    public Page<ListQuestionsByStudentResponse> listStudent(
+            @Positive @PathVariable Integer attemptId,
+            Pageable pageable) {
+        return listQuestionsByStudentUseCase.execute(attemptId, pageable);
     }
-
 }

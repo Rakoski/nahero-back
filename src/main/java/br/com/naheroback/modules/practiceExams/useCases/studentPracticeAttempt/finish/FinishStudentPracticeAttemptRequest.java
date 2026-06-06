@@ -6,11 +6,11 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public record FinishStudentPracticeAttemptRequest(
-        @NotNull(message = "studentPracticeAttemptId is required") Integer studentPracticeAttemptId,
-        @NotEmpty(message = "answers are required") List<AnswerRequest> answers
+        @NotNull(message = "{studentpracticeattempt.id.required}") Integer studentPracticeAttemptId,
+        @NotEmpty(message = "{studentpracticeattempt.answers.required}") List<AnswerRequest> answers
 ) {
     public record AnswerRequest(
-            @NotNull(message = "questionId is required") String questionId,
+            @NotNull(message = "{question.id.required}") String questionId,
             List<String> alternativeIds,  // MULTIPLE_CHOICE, TRUE_FALSE, OBJECTIVE
             String descriptiveAnswer,     // DESCRIPTIVE
             Double sumAnswer              // SUM

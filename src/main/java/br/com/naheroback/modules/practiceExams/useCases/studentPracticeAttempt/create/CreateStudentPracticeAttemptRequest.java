@@ -12,7 +12,7 @@ import jakarta.validation.constraints.Positive;
 import java.time.LocalDateTime;
 
 public record CreateStudentPracticeAttemptRequest(
-    @NotNull(message = "practiceExamId is required") @Positive Integer practiceExamId
+    @NotNull(message = "{practiceexam.id.required}") @Positive Integer practiceExamId
 ) {
     public static StudentPracticeAttempt toDomain(Integer enrollmentId, Integer practiceExamId) {
         StudentPracticeAttempt studentPracticeAttempt = new StudentPracticeAttempt();

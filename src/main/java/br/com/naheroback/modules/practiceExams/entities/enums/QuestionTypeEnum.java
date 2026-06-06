@@ -15,4 +15,10 @@ public enum QuestionTypeEnum {
     QuestionTypeEnum(int id) {
         this.id = id;
     }
+
+    public static QuestionTypeEnum fromId(Integer id) {
+        if (id == null) return MULTIPLE_CHOICE;
+        for (QuestionTypeEnum type : values()) if (type.getId() == id) return type;
+        return MULTIPLE_CHOICE;
+    }
 }

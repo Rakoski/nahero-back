@@ -18,7 +18,14 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+    @Index(name = "idx_users_email", columnList = "email"),
+    @Index(name = "idx_users_cpf", columnList = "cpf"),
+    @Index(name = "idx_users_deleted_at", columnList = "deleted_at"),
+    @Index(name = "idx_users_email_confirmed_at", columnList = "email_confirmed_at"),
+    @Index(name = "idx_users_external_customer_id", columnList = "external_customer_id"),
+    @Index(name = "idx_users_address_id", columnList = "address_id")
+})
 @SQLDelete(sql = "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class User extends BaseEntity {
@@ -33,9 +40,6 @@ public class User extends BaseEntity {
 
     @Column(unique = true, length = 20)
     private String cpf;
-
-    @Column(unique = true, length = 30)
-    private String passportNumber;
 
     @Column(length = MAXIMUM_BIO_VALUE)
     private String bio;

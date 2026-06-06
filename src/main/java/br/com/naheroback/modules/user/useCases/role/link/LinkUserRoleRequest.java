@@ -8,6 +8,6 @@ import jakarta.validation.constraints.Positive;
 import java.util.List;
 
 public record LinkUserRoleRequest(
-    @NotNull(message = "userId is required") @Positive Integer userId,
-    @Valid @NotEmpty(message = "roleIds are required") List<Integer> roleIds
+    @NotNull(message = "{role.userid.required}") @Positive Integer userId,
+    @Valid @NotEmpty(message = "{role.roleids.required}") List<Integer> roleIds
 ) {}

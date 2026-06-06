@@ -10,9 +10,9 @@ import java.util.Objects;
 
 public record CreateAlternativeRequest(
     Integer baseAlternativeId,
-    @NotNull(message = "questionId is required") Integer questionId,
-    @NotNull(message = "content is required") String content,
-    @NotNull(message = "isCorrect is required") Boolean isCorrect,
+    @NotNull(message = "{alternative.questionid.required}") Integer questionId,
+    @NotNull(message = "{alternative.content.required}") String content,
+    @NotNull(message = "{alternative.iscorrect.required}") Boolean isCorrect,
     String imageUrl
 ) {
     public static Alternative toDomain(CreateAlternativeRequest request, int teacherId, int version) {
