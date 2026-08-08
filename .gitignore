@@ -7,6 +7,11 @@ CLAUDE.md
 !**/src/test/**/target/
 deploy.sh
 
+### Env ###
+.env
+.env.*
+!.env.example
+
 ### STS ###
 .apt_generated
 .classpath

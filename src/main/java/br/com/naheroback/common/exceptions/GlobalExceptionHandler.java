@@ -2,6 +2,7 @@ package br.com.naheroback.common.exceptions;
 
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
+import br.com.naheroback.common.exceptions.custom.PaymentRequiredException;
 import br.com.naheroback.common.exceptions.custom.UnprocessableEntityException;
 import br.com.naheroback.common.exceptions.custom.ValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,8 +14,9 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
@@ -94,6 +96,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(exception);
     }
 
+    @ExceptionHandler(PaymentRequiredException.class)
+    protected ResponseEntity<CustomException> paymentRequired(PaymentRequiredException e, HttpServletRequest request) {
+        String resolved = messageSource.getMessage(
+                e.getMessageKey(),
+                e.getArgs(),
+                e.getMessageKey(),
+                LocaleContextHolder.getLocale()
+        );
+
+        var exception = CustomException.builder()
+                .status(HttpStatus.PRECONDITION_FAILED)
+                .timestamp(Instant.now())
+                .error(resolved)
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("PaymentRequiredException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(exception);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     protected ResponseEntity<CustomException> methodArgumentNotValid(MethodArgumentNotValidException e, HttpServletRequest request) {
         var exception = CustomException.builder()
@@ -104,6 +127,20 @@ public class GlobalExceptionHandler {
                 .build();
 
         log.error("MethodArgumentNotValidException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    protected ResponseEntity<CustomException> httpMessageNotReadable(HttpMessageNotReadableException e, HttpServletRequest request) {
+        var exception = CustomException.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .timestamp(Instant.now())
+                .error(e.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("HttpMessageNotReadableException: {} - Path: {}", exception.getError(), exception.getPath());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception);
     }

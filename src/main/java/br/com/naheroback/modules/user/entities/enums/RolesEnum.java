@@ -6,9 +6,7 @@ import lombok.Getter;
 public enum RolesEnum {
     IS_STUDENT(1),
     IS_TEACHER(2),
-    IS_ADMIN(3),
-    IS_PREMIUM_STUDENT(4),
-    IS_PREMIUM_TEACHER(5);
+    IS_ADMIN(3);
 
     private final int value;
 

@@ -89,9 +89,7 @@ public class GetDashboardSummaryUseCase {
     }
 
     private static Integer scorePercent(StudentPracticeAttempt attempt) {
-        if (attempt.getScore() == null || attempt.getPracticeExam() == null) {
-            return null;
-        }
+        if (attempt.getScore() == null || attempt.getPracticeExam() == null) return null;
         Integer numberOfQuestions = attempt.getPracticeExam().getNumberOfQuestions();
         int total = numberOfQuestions != null ? numberOfQuestions : Constants.MAX_EXAM_QUESTIONS;
         if (total == 0) return null;
@@ -149,8 +147,7 @@ public class GetDashboardSummaryUseCase {
                 .toList();
     }
 
-    private List<GetDashboardSummaryResponse.PracticeExamPerformance> byPracticeExam(
-            List<StudentPracticeAttempt> finalized) {
+    private List<GetDashboardSummaryResponse.PracticeExamPerformance> byPracticeExam(List<StudentPracticeAttempt> finalized) {
         Map<Integer, List<StudentPracticeAttempt>> grouped = new HashMap<>();
         for (StudentPracticeAttempt a : finalized) {
             PracticeExam pe = a.getPracticeExam();
@@ -213,14 +210,11 @@ public class GetDashboardSummaryUseCase {
                 .toList();
     }
 
-    private GetDashboardSummaryResponse.InProgressAttempt currentInProgress(
-            List<StudentPracticeAttempt> attempts) {
+    private GetDashboardSummaryResponse.InProgressAttempt currentInProgress(List<StudentPracticeAttempt> attempts) {
         return attempts.stream()
                 .filter(a -> a.getAttemptStatus() != null
-                        && Objects.equals(a.getAttemptStatus().getId(),
-                                          PracticeAttemptStatusesEnum.IN_PROGRESS.getId()))
-                .max(Comparator.comparing(StudentPracticeAttempt::getStartTime,
-                        Comparator.nullsFirst(Comparator.naturalOrder())))
+                        && Objects.equals(a.getAttemptStatus().getId(), PracticeAttemptStatusesEnum.IN_PROGRESS.getId()))
+                .max(Comparator.comparing(StudentPracticeAttempt::getStartTime, Comparator.nullsFirst(Comparator.naturalOrder())))
                 .map(a -> GetDashboardSummaryResponse.InProgressAttempt.builder()
                         .attemptId(a.getId())
                         .practiceExamId(a.getPracticeExam() != null ? a.getPracticeExam().getId() : null)
