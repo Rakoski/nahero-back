@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
 
 public record CreateQuestionRequest(
         Integer baseQuestionId,
-        @NotNull(message = "practiceExamId is required") @Positive Integer practiceExamId,
-        @NotNull(message = "questionTypeId is required") @Positive Integer questionTypeId,
-        @NotNull(message = "content is required") String content,
+        @NotNull(message = "{question.practiceexamid.required}") @Positive Integer practiceExamId,
+        @NotNull(message = "{question.questiontypeid.required}") @Positive Integer questionTypeId,
+        @NotNull(message = "{question.content.required}") String content,
         String imageUrl,
         String explanation,
         Integer points,
@@ -26,9 +26,9 @@ public record CreateQuestionRequest(
 
     public record AlternativeRequest(
             Integer baseAlternativeId,
-            @NotNull(message = "questionId is required") Integer questionId,
-            @NotNull(message = "content is required") String content,
-            @NotNull(message = "isCorrect is required") Boolean isCorrect,
+            @NotNull(message = "{question.id.required}") Integer questionId,
+            @NotNull(message = "{alternative.content.required}") String content,
+            @NotNull(message = "{alternative.iscorrect.required}") Boolean isCorrect,
             String imageUrl
     ) {
         public static Alternative toDomain(AlternativeRequest request, Question question, int version) {

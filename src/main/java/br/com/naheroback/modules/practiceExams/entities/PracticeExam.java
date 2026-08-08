@@ -16,7 +16,14 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "practice_exams")
+@Table(name = "practice_exams", indexes = {
+    @Index(name = "idx_practice_exams_exam_id", columnList = "exam_id"),
+    @Index(name = "idx_practice_exams_teacher_id", columnList = "teacher_id"),
+    @Index(name = "idx_practice_exams_is_active", columnList = "is_active"),
+    @Index(name = "idx_practice_exams_deleted_at", columnList = "deleted_at"),
+    @Index(name = "idx_practice_exams_title", columnList = "title"),
+    @Index(name = "idx_practice_exams_slug", columnList = "slug", unique = true)
+})
 @SQLDelete(sql = "UPDATE practice_exams SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class PracticeExam extends BaseEntity {
@@ -27,7 +34,10 @@ public class PracticeExam extends BaseEntity {
     
     @Column(nullable = false)
     private String title;
-    
+
+    @Column(nullable = false, unique = true)
+    private String slug;
+
     @Column
     private String description;
     
@@ -40,9 +50,6 @@ public class PracticeExam extends BaseEntity {
     
     @Column(name = "time_limit")
     private Integer timeLimit;
-    
-    @Column(name = "difficulty_level")
-    private Integer difficultyLevel;
     
     @Column(name = "is_active")
     private Boolean isActive = true;

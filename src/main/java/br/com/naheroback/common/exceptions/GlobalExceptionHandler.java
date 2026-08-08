@@ -2,15 +2,23 @@ package br.com.naheroback.common.exceptions;
 
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
+import br.com.naheroback.common.exceptions.custom.PaymentRequiredException;
+import br.com.naheroback.common.exceptions.custom.UnprocessableEntityException;
 import br.com.naheroback.common.exceptions.custom.ValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,6 +31,7 @@ import java.time.Instant;
 @Slf4j(topic = "GLOBAL_EXCEPTION_HANDLER")
 public class GlobalExceptionHandler {
     private final ObjectMapper objectMapper;
+    private final MessageSource messageSource;
 
     @ExceptionHandler(NotFoundException.class)
     protected ResponseEntity<CustomException> resourceNotFound(RuntimeException e, HttpServletRequest request) {
@@ -64,6 +73,108 @@ public class GlobalExceptionHandler {
         log.error("ValidationException: {} - Path: {}", exception.getError(), exception.getPath());
 
         return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(exception);
+    }
+
+    @ExceptionHandler(UnprocessableEntityException.class)
+    protected ResponseEntity<CustomException> unprocessableEntity(UnprocessableEntityException e, HttpServletRequest request) {
+        String resolved = messageSource.getMessage(
+                e.getMessageKey(),
+                e.getArgs(),
+                e.getMessageKey(),
+                LocaleContextHolder.getLocale()
+        );
+
+        var exception = CustomException.builder()
+                .status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .timestamp(Instant.now())
+                .error(resolved)
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("UnprocessableEntityException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(exception);
+    }
+
+    @ExceptionHandler(PaymentRequiredException.class)
+    protected ResponseEntity<CustomException> paymentRequired(PaymentRequiredException e, HttpServletRequest request) {
+        String resolved = messageSource.getMessage(
+                e.getMessageKey(),
+                e.getArgs(),
+                e.getMessageKey(),
+                LocaleContextHolder.getLocale()
+        );
+
+        var exception = CustomException.builder()
+                .status(HttpStatus.PRECONDITION_FAILED)
+                .timestamp(Instant.now())
+                .error(resolved)
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("PaymentRequiredException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(exception);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    protected ResponseEntity<CustomException> methodArgumentNotValid(MethodArgumentNotValidException e, HttpServletRequest request) {
+        var exception = CustomException.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .timestamp(Instant.now())
+                .error(e.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("MethodArgumentNotValidException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    protected ResponseEntity<CustomException> httpMessageNotReadable(HttpMessageNotReadableException e, HttpServletRequest request) {
+        var exception = CustomException.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .timestamp(Instant.now())
+                .error(e.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("HttpMessageNotReadableException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    protected ResponseEntity<CustomException> methodNotSupported(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+        var exception = CustomException.builder()
+                .status(HttpStatus.METHOD_NOT_ALLOWED)
+                .timestamp(Instant.now())
+                .error(e.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("HttpRequestMethodNotSupportedException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(exception);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    protected ResponseEntity<CustomException> methodArgumentTypeMismatch(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
+        String paramName = e.getName();
+        String requiredType = e.getRequiredType() != null ? e.getRequiredType().getSimpleName() : "unknown";
+        String errorMessage = String.format("Invalid value for parameter '%s'. Expected type: %s", paramName, requiredType);
+
+        var exception = CustomException.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .timestamp(Instant.now())
+                .error(errorMessage)
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("MethodArgumentTypeMismatchException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception);
     }
 
     public void sendErrorResponse(HttpServletResponse response, HttpStatus status, String error, String path)

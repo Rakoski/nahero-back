@@ -15,7 +15,16 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "questions")
+@Table(name = "questions", indexes = {
+    @Index(name = "idx_questions_practice_exam_id", columnList = "practice_exam_id"),
+    @Index(name = "idx_questions_question_type_id", columnList = "question_type_id"),
+    @Index(name = "idx_questions_base_question_id", columnList = "base_question_id"),
+    @Index(name = "idx_questions_base_question_version", columnList = "base_question_id, version"),
+    @Index(name = "idx_questions_teacher_id", columnList = "teacher_id"),
+    @Index(name = "idx_questions_is_active", columnList = "is_active"),
+    @Index(name = "idx_questions_deleted_at", columnList = "deleted_at"),
+    @Index(name = "idx_questions_version", columnList = "version")
+})
 @SQLDelete(sql = "UPDATE questions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class Question extends BaseEntity {
@@ -53,4 +62,7 @@ public class Question extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id")
     private User teacher;
+
+    @Column
+    private String language;
 }

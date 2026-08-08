@@ -5,11 +5,11 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 public record LoginRequest(
-    @Email(message = "Email is invalid")
-    @NotBlank(message = "Email is required")
+    @Email(message = "{auth.email.invalid}")
+    @NotBlank(message = "{auth.email.required}")
     String email,
 
-    @NotBlank(message = "Password is required")
+    @NotBlank(message = "{auth.password.required}")
     String password
 ) {
     public static User toDomain(LoginRequest input) {
