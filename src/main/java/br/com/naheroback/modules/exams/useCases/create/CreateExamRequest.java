@@ -3,6 +3,7 @@ package br.com.naheroback.modules.exams.useCases.create;
 import br.com.naheroback.modules.exams.entities.Exam;
 import br.com.naheroback.modules.user.entities.User;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
@@ -10,6 +11,7 @@ public record CreateExamRequest(
     @NotBlank(message = "{exam.title.required}") String title,
     String description,
     String category,
+    @NotNull(message = "{exam.difficultylevel.required}")
     @Min(value = 1, message = "{exam.difficultylevel.min}")
     @Max(value = 5, message = "{exam.difficultylevel.max}")
     Integer difficultyLevel,

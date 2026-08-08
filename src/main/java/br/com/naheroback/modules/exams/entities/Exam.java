@@ -42,6 +42,6 @@ public class Exam extends BaseEntity {
     @Column(name = "is_active")
     private Boolean isActive = true;
     
-    @Column(name = "difficulty_level")
+    @Column(name = "difficulty_level", nullable = false)
     private Integer difficultyLevel;
 }

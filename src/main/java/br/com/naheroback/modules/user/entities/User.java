@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.user.entities;
 
 import br.com.naheroback.common.entities.BaseEntity;
+import br.com.naheroback.providers.payment.PaymentProviderName;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,6 +25,7 @@ import java.util.Set;
     @Index(name = "idx_users_deleted_at", columnList = "deleted_at"),
     @Index(name = "idx_users_email_confirmed_at", columnList = "email_confirmed_at"),
     @Index(name = "idx_users_external_customer_id", columnList = "external_customer_id"),
+    @Index(name = "idx_users_payment_provider", columnList = "payment_provider"),
     @Index(name = "idx_users_address_id", columnList = "address_id")
 })
 @SQLDelete(sql = "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
@@ -53,8 +55,15 @@ public class User extends BaseEntity {
     @Column(name = "email_confirmed_at")
     private LocalDateTime emailConfirmedAt;
 
+    @Column(name = "free_tries_left", nullable = false)
+    private Integer freeTriesLeft = 1;
+
     @Column(name = "external_customer_id")
     private String externalCustomerId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_provider", length = 32)
+    private PaymentProviderName paymentProvider;
 
     @Column(name = "forgot_password_token")
     private String forgotPasswordToken;

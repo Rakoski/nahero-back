@@ -1,0 +1,11 @@
+DELETE FROM user_roles
+WHERE role_id IN (
+    SELECT id FROM roles WHERE name IN ('IS_PREMIUM_STUDENT', 'IS_PREMIUM_TEACHER')
+);
+
+DELETE FROM role_permissions
+WHERE role_id IN (
+    SELECT id FROM roles WHERE name IN ('IS_PREMIUM_STUDENT', 'IS_PREMIUM_TEACHER')
+);
+
+DELETE FROM roles WHERE name IN ('IS_PREMIUM_STUDENT', 'IS_PREMIUM_TEACHER');

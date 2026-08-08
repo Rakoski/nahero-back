@@ -18,7 +18,7 @@ public class WhiteListConfig {
                 new AntPathRequestMatcher("/error", "GET"),
                 new AntPathRequestMatcher("/auth/**", "POST"),
                 new AntPathRequestMatcher("/users", "POST"),
-                new AntPathRequestMatcher("/payment/**", "POST"),
+                new AntPathRequestMatcher("/payment/stripe", "POST"),
                 new AntPathRequestMatcher("/practice-exams/list", "GET"),
                 new AntPathRequestMatcher("/practice-exams/by-slug/*", "GET")
         );

@@ -1,0 +1,3 @@
+ALTER TABLE users ADD COLUMN free_tries_left INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE users ADD COLUMN access_expires_at TIMESTAMP NULL;
+ALTER TABLE users ADD COLUMN stripe_subscription_id VARCHAR(255) NULL;
