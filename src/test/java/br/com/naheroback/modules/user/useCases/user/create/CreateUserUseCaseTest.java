@@ -2,11 +2,9 @@ package br.com.naheroback.modules.user.useCases.user.create;
 
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
-import br.com.naheroback.modules.user.entities.Address;
 import br.com.naheroback.modules.user.entities.Role;
 import br.com.naheroback.modules.user.entities.User;
 import br.com.naheroback.modules.user.entities.enums.RolesEnum;
-import br.com.naheroback.modules.user.repositories.AddressRepository;
 import br.com.naheroback.modules.user.repositories.RoleRepository;
 import br.com.naheroback.modules.user.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +20,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,9 +28,6 @@ class CreateUserUseCaseTest {
 
     @Mock
     private UserRepository userRepository;
-
-    @Mock
-    private AddressRepository addressRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -62,12 +58,6 @@ class CreateUserUseCaseTest {
         mockUser.setId(1);
         mockUser.setName("Test User");
         mockUser.setEmail("test@example.com");
-        
-        Address address = new Address();
-        address.setId(1);
-        address.setZipCode("12345-678");
-        address.setStreet("Test Street");
-        mockUser.setAddress(address);
 
         studentRole = new Role();
         studentRole.setId(1);
@@ -80,7 +70,6 @@ class CreateUserUseCaseTest {
     @DisplayName("Should create user successfully")
     void shouldCreateUserSuccessfully() {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-        when(userRepository.findByCpf(anyString())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(roleRepository.findByName(RolesEnum.IS_STUDENT.name())).thenReturn(Optional.of(studentRole));
         when(userRepository.save(any(User.class))).thenReturn(mockUser);
@@ -93,7 +82,6 @@ class CreateUserUseCaseTest {
 
         verify(userRepository, times(1)).findByEmail(validRequest.email());
         verify(passwordEncoder, times(1)).encode(validRequest.password());
-        verify(addressRepository, times(1)).save(any(Address.class));
         verify(roleRepository, times(1)).findByName(RolesEnum.IS_STUDENT.name());
         verify(userRepository, times(1)).save(any(User.class));
         verify(createUserResponse, times(1)).toPresentation(any(User.class));
@@ -117,29 +105,9 @@ class CreateUserUseCaseTest {
     }
 
     @Test
-    @DisplayName("Should throw DuplicateException when CPF already exists")
-    void shouldThrowDuplicateExceptionWhenCpfAlreadyExists() {
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-        when(userRepository.findByCpf(anyString())).thenReturn(Optional.of(new User()));
-
-        DuplicateException exception = assertThrows(
-                DuplicateException.class,
-                () -> createUserUseCase.execute(validRequest)
-        );
-
-        String message = exception.getMessage();
-        assertTrue(message.contains("cpf"));
-        assertTrue(message.contains("User with cpf"));
-
-        verify(userRepository, times(1)).findByEmail(validRequest.email());
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-    @Test
     @DisplayName("Should throw NotFoundException when student role not found")
     void shouldThrowNotFoundExceptionWhenStudentRoleNotFound() {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-        when(userRepository.findByCpf(anyString())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(roleRepository.findByName(RolesEnum.IS_STUDENT.name())).thenReturn(Optional.empty());
 
