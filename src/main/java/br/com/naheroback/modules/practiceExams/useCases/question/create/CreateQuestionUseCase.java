@@ -29,17 +29,13 @@ public class CreateQuestionUseCase {
         for (CreateQuestionRequest request : requests) {
             int version = 0;
 
-            if (Objects.nonNull(request.baseQuestionId())) {
-                version = questionRepository.findVersionByBaseQuestionId(request.baseQuestionId());
-            }
+            if (Objects.nonNull(request.baseQuestionId())) version = questionRepository.findVersionByBaseQuestionId(request.baseQuestionId());
 
             Question question = CreateQuestionRequest.toDomain(request, teacherId, version + 1);
             Question savedQuestion = questionRepository.save(question);
 
             List<Alternative> alternatives = CreateQuestionRequest.alternativesToDomain(request, savedQuestion, version + 1);
-            if (!alternatives.isEmpty()) {
-                alternativeRepository.saveAll(alternatives);
-            }
+            if (!alternatives.isEmpty()) alternativeRepository.saveAll(alternatives);
 
             savedQuestions.add(savedQuestion);
         }
