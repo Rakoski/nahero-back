@@ -3,6 +3,7 @@ package br.com.naheroback.common.exceptions;
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
 import br.com.naheroback.common.exceptions.custom.PaymentRequiredException;
+import br.com.naheroback.common.exceptions.custom.UnauthorizedException;
 import br.com.naheroback.common.exceptions.custom.UnprocessableEntityException;
 import br.com.naheroback.common.exceptions.custom.ValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,6 +46,20 @@ public class GlobalExceptionHandler {
         log.error("NotFoundException: {} - Path: {}", exception.getError(), exception.getPath());
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    protected ResponseEntity<CustomException> unauthorized(RuntimeException e, HttpServletRequest request) {
+        var exception = CustomException.builder()
+                .status(HttpStatus.UNAUTHORIZED)
+                .timestamp(Instant.now())
+                .error(e.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("UnauthorizedException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exception);
     }
 
     @ExceptionHandler(DuplicateException.class)

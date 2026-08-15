@@ -68,6 +68,9 @@ public class User extends BaseEntity {
     @Column(name = "forgot_password_token")
     private String forgotPasswordToken;
 
+    @Column(name = "forgot_password_token_expires_at")
+    private LocalDateTime forgotPasswordTokenExpiresAt;
+
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "address_id")
     private Address address;
