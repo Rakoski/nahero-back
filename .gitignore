@@ -6,6 +6,7 @@ CLAUDE.md
 !**/src/main/**/target/
 !**/src/test/**/target/
 deploy.sh
+/exam-generator
 
 ### Env ###
 .env
