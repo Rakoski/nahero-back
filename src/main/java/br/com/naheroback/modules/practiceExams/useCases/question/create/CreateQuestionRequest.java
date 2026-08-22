@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,7 @@ public record CreateQuestionRequest(
         String imageUrl,
         String explanation,
         Integer points,
+        String language,
         List<AlternativeRequest> alternatives
 ) {
 
@@ -64,6 +66,7 @@ public record CreateQuestionRequest(
         question.setImageUrl(request.imageUrl);
         question.setExplanation(request.explanation);
         question.setPoints(request.points);
+        question.setLanguage(Objects.requireNonNullElse(request.language, Locale.ENGLISH.getLanguage()));
         question.setVersion(version);
 
         return question;
