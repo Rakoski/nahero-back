@@ -1,5 +1,6 @@
 package br.com.naheroback.modules.auth.services;
 
+import br.com.naheroback.common.exceptions.custom.EmailNotVerifiedException;
 import br.com.naheroback.common.exceptions.custom.UnauthorizedException;
 import br.com.naheroback.modules.auth.entities.AuthenticatedUser;
 import br.com.naheroback.modules.auth.useCases.login.LoginRequest;
@@ -36,14 +37,21 @@ public class AuthService {
     private Integer refreshTokenExpirationTime;
 
     public LoginResponse login(LoginRequest loginRequest) {
+        AuthenticatedUser authenticatedUser = this.authenticate(loginRequest);
+
+        if (!authenticatedUser.getUser().isEmailConfirmed()) {
+            throw new EmailNotVerifiedException();
+        }
+
+        return this.generateTokens(authenticatedUser.getId(), authenticatedUser.getRoles(), authenticatedUser.getUser());
+    }
+
+    private AuthenticatedUser authenticate(LoginRequest loginRequest) {
         try {
             var token = new UsernamePasswordAuthenticationToken(loginRequest.email(), loginRequest.password());
             var authentication = this.authenticationManager.authenticate(token);
 
-            AuthenticatedUser authenticatedUser = (AuthenticatedUser) authentication.getPrincipal();
-            List<String> permissions = authenticatedUser.getRoles();
-
-            return this.generateTokens(authenticatedUser.getId(), permissions, authenticatedUser.getUser());
+            return (AuthenticatedUser) authentication.getPrincipal();
         } catch (RuntimeException e) {
             throw new UnauthorizedException();
         }
@@ -62,6 +70,11 @@ public class AuthService {
 
         Integer userId = Integer.parseInt(decodedJWT.getSubject());
         User user = this.userRepository.findById(userId).orElseThrow(UnauthorizedException::new);
+
+        if (!user.isEmailConfirmed()) {
+            throw new EmailNotVerifiedException();
+        }
+
         List<String> roles = user.getRoles().stream()
                 .map(Role::getName)
                 .toList();

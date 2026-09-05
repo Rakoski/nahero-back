@@ -1,7 +1,6 @@
 package br.com.naheroback.modules.practiceExams.useCases.question.listStudent;
 
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
-import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.practiceExams.entities.Question;
 import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
 import br.com.naheroback.modules.practiceExams.repositories.QuestionRepository;
@@ -30,22 +29,19 @@ public class ListQuestionsByStudentUseCase {
         StudentPracticeAttempt attempt = studentPracticeAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> NotFoundException.with(StudentPracticeAttempt.class, "attemptId", attemptId));
 
-        PracticeExam practiceExam = attempt.getPracticeExam();
-        Integer timeLimit = practiceExam.getTimeLimit();
+        Integer timeLimit = attempt.getPracticeExam().getTimeLimit();
 
-        int maxQuestionsForExam = questionShuffleService.getMaxQuestionsForExam(attempt);
-        Integer dbCount = questionRepository.countAllByPracticeExamId(practiceExam.getId());
-        int effectiveTotal = Math.min(dbCount, maxQuestionsForExam);
+        List<Integer> allShuffledIds = questionShuffleService.getShuffledQuestionIds(attemptId);
+        int effectiveTotal = allShuffledIds.size();
 
-        List<Integer> shuffledIdsForPage = questionShuffleService.getShuffledQuestionIdsForPage(
-                attemptId,
-                pageable.getPageNumber(),
-                pageable.getPageSize()
-        );
+        int fromIndex = (int) pageable.getOffset();
 
-        if (shuffledIdsForPage.isEmpty()) {
+        if (fromIndex >= effectiveTotal) {
             return new PageImpl<>(List.of(), pageable, effectiveTotal);
         }
+
+        int toIndex = Math.min(fromIndex + pageable.getPageSize(), effectiveTotal);
+        List<Integer> shuffledIdsForPage = allShuffledIds.subList(fromIndex, toIndex);
 
         List<Question> questions = questionRepository.findAllByIdIn(shuffledIdsForPage);
 

@@ -22,7 +22,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(UnauthorizedException::new);
     }
 
-    public UserDetails loadUserById(String id) throws UsernameNotFoundException {
+    public AuthenticatedUser loadUserById(String id) throws UsernameNotFoundException {
         return this.userRepository.findById(Integer.valueOf(id))
                 .map(AuthenticatedUser::new)
                 .orElseThrow(UnauthorizedException::new);
