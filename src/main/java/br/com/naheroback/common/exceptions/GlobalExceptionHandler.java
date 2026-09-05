@@ -1,8 +1,10 @@
 package br.com.naheroback.common.exceptions;
 
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
+import br.com.naheroback.common.exceptions.custom.EmailNotVerifiedException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
 import br.com.naheroback.common.exceptions.custom.PaymentRequiredException;
+import br.com.naheroback.common.exceptions.custom.TooManyRequestsException;
 import br.com.naheroback.common.exceptions.custom.UnauthorizedException;
 import br.com.naheroback.common.exceptions.custom.UnprocessableEntityException;
 import br.com.naheroback.common.exceptions.custom.ValidationException;
@@ -111,6 +113,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(exception);
     }
 
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    protected ResponseEntity<CustomException> emailNotVerified(EmailNotVerifiedException e, HttpServletRequest request) {
+        String resolved = messageSource.getMessage(
+                e.getMessageKey(),
+                null,
+                e.getMessageKey(),
+                LocaleContextHolder.getLocale()
+        );
+
+        var exception = CustomException.builder()
+                .status(HttpStatus.FORBIDDEN)
+                .timestamp(Instant.now())
+                .error(resolved)
+                .errorCode(EmailNotVerifiedException.ERROR_CODE)
+                .path(request.getRequestURI())
+                .build();
+
+        log.warn("EmailNotVerifiedException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(exception);
+    }
+
     @ExceptionHandler(PaymentRequiredException.class)
     protected ResponseEntity<CustomException> paymentRequired(PaymentRequiredException e, HttpServletRequest request) {
         String resolved = messageSource.getMessage(
@@ -130,6 +154,28 @@ public class GlobalExceptionHandler {
         log.error("PaymentRequiredException: {} - Path: {}", exception.getError(), exception.getPath());
 
         return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(exception);
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    protected ResponseEntity<CustomException> tooManyRequests(TooManyRequestsException e, HttpServletRequest request) {
+        String resolved = messageSource.getMessage(
+                e.getMessageKey(),
+                null,
+                e.getMessageKey(),
+                LocaleContextHolder.getLocale()
+        );
+
+        var exception = CustomException.builder()
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .timestamp(Instant.now())
+                .error(resolved)
+                .errorCode(TooManyRequestsException.ERROR_CODE)
+                .path(request.getRequestURI())
+                .build();
+
+        log.warn("TooManyRequestsException - Path: {}", exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(exception);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -194,11 +240,17 @@ public class GlobalExceptionHandler {
 
     public void sendErrorResponse(HttpServletResponse response, HttpStatus status, String error, String path)
             throws IOException {
+        sendErrorResponse(response, status, error, null, path);
+    }
+
+    public void sendErrorResponse(HttpServletResponse response, HttpStatus status, String error, String errorCode,
+                                  String path) throws IOException {
         response.setStatus(status.value());
         CustomException customException = CustomException.builder()
                 .timestamp(Instant.now())
                 .status(status)
                 .error(error)
+                .errorCode(errorCode)
                 .path(path)
                 .build();
         response.setContentType("application/json");

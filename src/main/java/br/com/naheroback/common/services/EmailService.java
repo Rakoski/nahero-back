@@ -29,6 +29,7 @@ public class EmailService {
     private static final String LOGO_CONTENT_ID = "naheroLogo";
     private static final String LOGO_RESOURCE = "static/nahero-logo.png";
     private static final String PASSWORD_RESET_TEMPLATE = "forgotPassword.ftlh";
+    private static final String EMAIL_VERIFICATION_TEMPLATE = "emailVerification.ftlh";
 
     private static final List<String> PASSWORD_RESET_KEYS = List.of(
             "email.password_reset.subject",
@@ -40,6 +41,21 @@ public class EmailService {
             "email.password_reset.expiration",
             "email.password_reset.ignore",
             "email.password_reset.signature",
+            "email.common.team",
+            "email.common.tagline"
+    );
+
+    private static final List<String> EMAIL_VERIFICATION_KEYS = List.of(
+            "email.email_verification.subject",
+            "email.email_verification.preheader",
+            "email.email_verification.greeting",
+            "email.email_verification.intro",
+            "email.email_verification.highlight",
+            "email.email_verification.cta",
+            "email.email_verification.fallback",
+            "email.email_verification.expiration",
+            "email.email_verification.ignore",
+            "email.email_verification.signature",
             "email.common.team",
             "email.common.tagline"
     );
@@ -57,6 +73,9 @@ public class EmailService {
     @Value("${app.password-reset.expiration-minutes}")
     private Integer expirationMinutes;
 
+    @Value("${app.email-verification.expiration-hours}")
+    private Integer verificationExpirationHours;
+
     public void sendPasswordResetEmail(String to, String name, String token) {
         Locale locale = LocaleContextHolder.getLocale();
         Map<String, Object> model = translate(PASSWORD_RESET_KEYS, locale, name, expirationMinutes);
@@ -69,6 +88,27 @@ public class EmailService {
 
         String body = render(PASSWORD_RESET_TEMPLATE, model);
         sendHtmlWithLogo(to, (String) model.get("subject"), body);
+    }
+
+    public void sendEmailVerificationEmail(String to, String name, String token) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Map<String, Object> model = translate(EMAIL_VERIFICATION_KEYS, locale, name, verificationExpirationHours);
+
+        model.put("name", name);
+        model.put("logoUrl", "cid:" + LOGO_CONTENT_ID);
+        model.put("supportEmail", fromSupport);
+        model.put("siteUrl", frontendUrl);
+        model.put("link", buildEmailVerificationLink(token, locale));
+
+        String body = render(EMAIL_VERIFICATION_TEMPLATE, model);
+        sendHtmlWithLogo(to, (String) model.get("subject"), body);
+    }
+
+    private String buildEmailVerificationLink(String token, Locale locale) {
+        return "%s/%s/verify-email?token=%s".formatted(
+                frontendUrl,
+                locale.getLanguage(),
+                URLEncoder.encode(token, StandardCharsets.UTF_8));
     }
 
     private String buildPasswordResetLink(String token, Locale locale) {

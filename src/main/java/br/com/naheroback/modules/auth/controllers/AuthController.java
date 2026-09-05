@@ -9,6 +9,8 @@ import br.com.naheroback.modules.auth.useCases.refreshToken.RefreshTokenRequest;
 import br.com.naheroback.modules.auth.useCases.refreshToken.RefreshTokenResponse;
 import br.com.naheroback.modules.auth.useCases.resetPassword.ResetPasswordRequest;
 import br.com.naheroback.modules.auth.useCases.resetPassword.ResetPasswordUseCase;
+import br.com.naheroback.common.ratelimit.RateLimitProperties;
+import br.com.naheroback.common.ratelimit.RateLimitService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,8 @@ public class AuthController {
     private final AuthService authService;
     private final ForgotPasswordUseCase forgotPasswordUseCase;
     private final ResetPasswordUseCase resetPasswordUseCase;
+    private final RateLimitService rateLimitService;
+    private final RateLimitProperties rateLimitProperties;
 
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
@@ -37,6 +41,8 @@ public class AuthController {
     @PostMapping("/forgot-password")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest) {
+        rateLimitService.consume(rateLimitProperties.recipientPolicy(), forgotPasswordRequest.email());
+
         forgotPasswordUseCase.execute(forgotPasswordRequest);
     }
 

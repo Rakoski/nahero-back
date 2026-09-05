@@ -7,6 +7,7 @@ import br.com.naheroback.modules.user.entities.User;
 import br.com.naheroback.modules.user.entities.enums.RolesEnum;
 import br.com.naheroback.modules.user.repositories.RoleRepository;
 import br.com.naheroback.modules.user.repositories.UserRepository;
+import br.com.naheroback.modules.user.services.EmailVerificationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +20,7 @@ public class CreateUserUseCase {
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
     private final CreateUserResponse createUserResponse;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional
     public CreateUserResponse execute(CreateUserRequest input) {
@@ -30,6 +32,8 @@ public class CreateUserUseCase {
         user.getRoles().add(isStudent);
 
         userRepository.save(user);
+
+        emailVerificationService.issueAndSendQuietly(user);
 
         return createUserResponse.toPresentation(user);
     }
