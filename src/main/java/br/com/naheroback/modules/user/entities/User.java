@@ -71,6 +71,12 @@ public class User extends BaseEntity {
     @Column(name = "forgot_password_token_expires_at")
     private LocalDateTime forgotPasswordTokenExpiresAt;
 
+    @Column(name = "email_verification_token")
+    private String emailVerificationToken;
+
+    @Column(name = "email_verification_token_expires_at")
+    private LocalDateTime emailVerificationTokenExpiresAt;
+
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "address_id")
     private Address address;
@@ -78,6 +84,10 @@ public class User extends BaseEntity {
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
+
+    public boolean isEmailConfirmed() {
+        return emailConfirmedAt != null;
+    }
 
     public boolean hasRole(String roleName) {
         return roles.stream()

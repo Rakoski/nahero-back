@@ -1,6 +1,8 @@
 package br.com.naheroback.common.configs;
 
+import br.com.naheroback.common.exceptions.custom.EmailNotVerifiedException;
 import br.com.naheroback.common.exceptions.custom.UnauthorizedException;
+import br.com.naheroback.modules.auth.entities.AuthenticatedUser;
 import br.com.naheroback.modules.auth.services.CustomUserDetailsService;
 import br.com.naheroback.modules.auth.services.JwtService;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -46,7 +48,7 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
                 return;
             }
 
-            processRequest(request, response, filterChain, token);
+            processRequest(request, response, filterChain, token, isRouteWhitelisted);
         } catch (Exception e) {
             if (isUnauthorizedException(e)) {
                 globalExceptionHandler.sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "Unauthorized", request.getRequestURI());
@@ -70,10 +72,17 @@ public class JwtSecurityFilter extends OncePerRequestFilter {
         return false;
     }
 
-    private void processRequest(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, String token) throws IOException, ServletException {
+    private void processRequest(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, String token, boolean isRouteWhitelisted) throws IOException, ServletException {
         DecodedJWT decodedJWT = jwtService.decodeAndValidateToken(token);
         String userId = decodedJWT.getSubject();
-        var authenticatedUser = this.customUserDetailService.loadUserById(userId);
+        AuthenticatedUser authenticatedUser = this.customUserDetailService.loadUserById(userId);
+
+        if (!isRouteWhitelisted && !authenticatedUser.getUser().isEmailConfirmed()) {
+            globalExceptionHandler.sendErrorResponse(response, HttpStatus.FORBIDDEN, "Email not verified",
+                    EmailNotVerifiedException.ERROR_CODE, request.getRequestURI());
+            return;
+        }
+
         var authentication = new UsernamePasswordAuthenticationToken(authenticatedUser, null, authenticatedUser.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);

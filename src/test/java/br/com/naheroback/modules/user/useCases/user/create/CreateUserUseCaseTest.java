@@ -7,10 +7,12 @@ import br.com.naheroback.modules.user.entities.User;
 import br.com.naheroback.modules.user.entities.enums.RolesEnum;
 import br.com.naheroback.modules.user.repositories.RoleRepository;
 import br.com.naheroback.modules.user.repositories.UserRepository;
+import br.com.naheroback.modules.user.services.EmailVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -37,6 +39,9 @@ class CreateUserUseCaseTest {
 
     @Mock
     private CreateUserResponse createUserResponse;
+
+    @Mock
+    private EmailVerificationService emailVerificationService;
 
     @InjectMocks
     private CreateUserUseCase createUserUseCase;
@@ -84,7 +89,25 @@ class CreateUserUseCaseTest {
         verify(passwordEncoder, times(1)).encode(validRequest.password());
         verify(roleRepository, times(1)).findByName(RolesEnum.IS_STUDENT.name());
         verify(userRepository, times(1)).save(any(User.class));
+        verify(emailVerificationService, times(1)).issueAndSendQuietly(any(User.class));
         verify(createUserResponse, times(1)).toPresentation(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should send the verification email to the created user")
+    void shouldSendVerificationEmailToCreatedUser() {
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(roleRepository.findByName(RolesEnum.IS_STUDENT.name())).thenReturn(Optional.of(studentRole));
+        when(createUserResponse.toPresentation(any(User.class))).thenReturn(mockResponse);
+
+        createUserUseCase.execute(validRequest);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(emailVerificationService, times(1)).issueAndSendQuietly(userCaptor.capture());
+
+        assertEquals(validRequest.email(), userCaptor.getValue().getEmail());
+        assertNull(userCaptor.getValue().getEmailConfirmedAt());
     }
 
     @Test
@@ -123,5 +146,6 @@ class CreateUserUseCaseTest {
         verify(passwordEncoder, times(1)).encode(validRequest.password());
         verify(roleRepository, times(1)).findByName(RolesEnum.IS_STUDENT.name());
         verify(userRepository, never()).save(any(User.class));
+        verify(emailVerificationService, never()).issueAndSendQuietly(any(User.class));
     }
 }
