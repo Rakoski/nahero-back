@@ -2,6 +2,8 @@ package br.com.naheroback.modules.user.useCases.user.verifyEmail;
 
 import br.com.naheroback.common.exceptions.custom.UnprocessableEntityException;
 import br.com.naheroback.common.utils.TokenHasher;
+import br.com.naheroback.modules.auth.services.AuthService;
+import br.com.naheroback.modules.auth.useCases.login.LoginResponse;
 import br.com.naheroback.modules.user.entities.User;
 import br.com.naheroback.modules.user.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +19,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -27,6 +31,9 @@ class VerifyEmailUseCaseTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AuthService authService;
 
     @InjectMocks
     private VerifyEmailUseCase verifyEmailUseCase;
@@ -69,6 +76,27 @@ class VerifyEmailUseCaseTest {
         assertNotNull(mockUser.getEmailVerificationTokenExpiresAt());
 
         verify(userRepository, times(1)).save(mockUser);
+    }
+
+    @Test
+    @DisplayName("Should issue a session on the click that actually confirms the email")
+    void shouldIssueSessionOnFirstConfirmation() {
+        LoginResponse tokens = new LoginResponse();
+        when(userRepository.findByEmailVerificationToken(anyString())).thenReturn(Optional.of(mockUser));
+        when(authService.generateTokens(eq(1), anyList(), eq(mockUser))).thenReturn(tokens);
+
+        assertSame(tokens, verifyEmailUseCase.execute(validRequest));
+    }
+
+    @Test
+    @DisplayName("Should not issue a session for a token that was already used, so the link grants at most one session")
+    void shouldNotIssueSessionForAlreadyUsedToken() {
+        mockUser.setEmailConfirmedAt(LocalDateTime.now().minusMinutes(5));
+        when(userRepository.findByEmailVerificationToken(anyString())).thenReturn(Optional.of(mockUser));
+
+        assertNull(verifyEmailUseCase.execute(validRequest));
+
+        verify(authService, never()).generateTokens(any(), anyList(), any(User.class));
     }
 
     @Test

@@ -30,10 +30,9 @@ public class VerifyEmailUseCase {
 
         if (isTokenExpired(user)) throw new UnprocessableEntityException(INVALID_TOKEN);
 
-        if (!user.isEmailConfirmed()) user.setEmailConfirmedAt(LocalDateTime.now());
+        if (user.isEmailConfirmed()) return null;
 
-        user.setEmailVerificationToken(null);
-        user.setEmailVerificationTokenExpiresAt(null);
+        user.setEmailConfirmedAt(LocalDateTime.now());
 
         userRepository.save(user);
 
