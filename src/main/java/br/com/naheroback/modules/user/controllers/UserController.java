@@ -1,5 +1,6 @@
 package br.com.naheroback.modules.user.controllers;
 
+import br.com.naheroback.modules.auth.useCases.login.LoginResponse;
 import br.com.naheroback.modules.user.useCases.user.create.CreateUserRequest;
 import br.com.naheroback.modules.user.useCases.user.create.CreateUserResponse;
 import br.com.naheroback.modules.user.useCases.user.create.CreateUserUseCase;
@@ -35,9 +36,9 @@ public class UserController {
     }
 
     @PostMapping("/verify-email")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
-        this.verifyEmailUseCase.execute(request);
+    @ResponseStatus(HttpStatus.OK)
+    public LoginResponse verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        return this.verifyEmailUseCase.execute(request);
     }
 
     @PostMapping("/verify-email/resend")
