@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM eclipse-temurin:21-jdk-jammy
 
 RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
@@ -7,7 +8,7 @@ WORKDIR /app
 COPY ci-settings.xml /usr/share/maven/conf/settings.xml
 
 COPY pom.xml .
-RUN mvn -B -Dmaven.artifact.threads=10 dependency:go-offline
+RUN mvn -B -Dmaven.artifact.threads=10 dependency:resolve
 
 COPY src/ ./src/
 

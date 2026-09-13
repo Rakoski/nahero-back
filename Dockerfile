@@ -1,12 +1,14 @@
+# syntax=docker/dockerfile:1
 FROM eclipse-temurin:21-jdk-jammy AS build
-RUN apt-get update && apt-get install -y maven
+RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+COPY ci-settings.xml /usr/share/maven/conf/settings.xml
 COPY pom.xml .
-RUN mvn dependency:go-offline
 COPY src/ ./src/
 
 COPY keystore.p12 /app/keystore.p12
-RUN mvn package -DskipTests
+RUN --mount=type=cache,target=/root/.m2/repository \
+    mvn -B -Dmaven.artifact.threads=10 package -DskipTests
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
