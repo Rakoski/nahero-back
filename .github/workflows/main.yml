@@ -22,6 +22,7 @@ jobs:
         username: ${{ secrets.SERVER_USERNAME }}
         password: ${{ secrets.SERVER_PASSWORD }}
         port: ${{ secrets.SERVER_PORT }}
+        command_timeout: 40m
         script: |
           cd ~/nahero/nahero-back
           
