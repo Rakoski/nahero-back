@@ -77,6 +77,12 @@ public class User extends BaseEntity {
     @Column(name = "email_verification_token_expires_at")
     private LocalDateTime emailVerificationTokenExpiresAt;
 
+    @Column(name = "reengagement_opted_out_at")
+    private LocalDateTime reengagementOptedOutAt;
+
+    @Column(name = "reengagement_unsubscribe_token")
+    private String reengagementUnsubscribeToken;
+
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "address_id")
     private Address address;
@@ -87,6 +93,10 @@ public class User extends BaseEntity {
 
     public boolean isEmailConfirmed() {
         return emailConfirmedAt != null;
+    }
+
+    public boolean isOptedOutOfReengagement() {
+        return reengagementOptedOutAt != null;
     }
 
     public boolean hasRole(String roleName) {

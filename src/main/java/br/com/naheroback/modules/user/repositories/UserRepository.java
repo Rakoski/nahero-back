@@ -14,6 +14,7 @@ public interface UserRepository extends BaseRepository<User, Integer> {
     Optional<User> findByCpf(String cpf);
     Optional<User> findByForgotPasswordToken(String forgotPasswordToken);
     Optional<User> findByEmailVerificationToken(String emailVerificationToken);
+    Optional<User> findByReengagementUnsubscribeToken(String reengagementUnsubscribeToken);
     Optional<User> findByPaymentProviderAndExternalCustomerId(PaymentProviderName provider, String externalCustomerId);
 
     @Modifying
