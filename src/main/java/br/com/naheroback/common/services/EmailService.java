@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.io.StringWriter;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -30,6 +31,7 @@ public class EmailService {
     private static final String LOGO_RESOURCE = "static/nahero-logo.png";
     private static final String PASSWORD_RESET_TEMPLATE = "forgotPassword.ftlh";
     private static final String EMAIL_VERIFICATION_TEMPLATE = "emailVerification.ftlh";
+    private static final String REENGAGEMENT_TEMPLATE = "reengagement.ftlh";
 
     private static final List<String> PASSWORD_RESET_KEYS = List.of(
             "email.password_reset.subject",
@@ -58,6 +60,24 @@ public class EmailService {
             "email.email_verification.signature",
             "email.common.team",
             "email.common.tagline"
+    );
+
+    private static final List<String> REENGAGEMENT_COMMON_KEYS = List.of(
+            "email.reengagement.common.fallback",
+            "email.reengagement.common.signature",
+            "email.reengagement.common.unsubscribe_intro",
+            "email.reengagement.common.unsubscribe_cta",
+            "email.common.team",
+            "email.common.tagline"
+    );
+
+    private static final List<String> REENGAGEMENT_CONTENT_KEYS = List.of(
+            "subject",
+            "preheader",
+            "greeting",
+            "intro",
+            "highlight",
+            "cta"
     );
 
     private final Configuration freemarkerConfiguration;
@@ -104,6 +124,22 @@ public class EmailService {
         sendHtmlWithLogo(to, (String) model.get("subject"), body);
     }
 
+    public void sendReengagementEmail(String to, String name, String messagePrefix, String actionLink, Locale locale) {
+        List<String> keys = new ArrayList<>(REENGAGEMENT_COMMON_KEYS);
+        REENGAGEMENT_CONTENT_KEYS.forEach(key -> keys.add("%s.%s".formatted(messagePrefix, key)));
+
+        Map<String, Object> model = translate(keys, locale, name);
+
+        model.put("name", name);
+        model.put("logoUrl", "cid:" + LOGO_CONTENT_ID);
+        model.put("supportEmail", fromSupport);
+        model.put("siteUrl", frontendUrl);
+        model.put("link", actionLink);
+
+        String body = render(REENGAGEMENT_TEMPLATE, model);
+        sendHtmlWithLogo(to, (String) model.get("subject"), body);
+    }
+
     private String buildEmailVerificationLink(String token, Locale locale) {
         return "%s/%s/verify-email?token=%s".formatted(
                 frontendUrl,
@@ -140,6 +176,10 @@ public class EmailService {
     }
 
     private void sendHtmlWithLogo(String to, String subject, String body) {
+        sendHtmlWithLogo(to, subject, body, Map.of());
+    }
+
+    private void sendHtmlWithLogo(String to, String subject, String body, Map<String, String> headers) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
@@ -149,6 +189,10 @@ public class EmailService {
             helper.setSubject(subject);
             helper.setText(body, true);
             helper.addInline(LOGO_CONTENT_ID, new ClassPathResource(LOGO_RESOURCE), "image/png");
+
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                message.setHeader(header.getKey(), header.getValue());
+            }
 
             mailSender.send(message);
         } catch (Exception e) {
