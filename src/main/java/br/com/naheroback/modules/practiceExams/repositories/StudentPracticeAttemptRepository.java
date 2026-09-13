@@ -2,6 +2,7 @@ package br.com.naheroback.modules.practiceExams.repositories;
 
 import br.com.naheroback.common.repositories.BaseRepository;
 import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,4 +17,11 @@ public interface StudentPracticeAttemptRepository extends BaseRepository<Student
         WHERE a.enrollment.student.id = :studentId
     """)
     List<StudentPracticeAttempt> findAllForStudentDashboard(@Param("studentId") Integer studentId);
+
+    @Query("""
+        SELECT a.language FROM StudentPracticeAttempt a
+        WHERE a.enrollment.student.id = :studentId AND a.language IS NOT NULL
+        ORDER BY a.startTime DESC
+    """)
+    List<String> findRecentLanguagesForStudent(@Param("studentId") Integer studentId, Pageable pageable);
 }
