@@ -24,7 +24,8 @@ public class WhiteListConfig {
                 new AntPathRequestMatcher("/reengagement/unsubscribe", "GET"),
                 new AntPathRequestMatcher("/reengagement/unsubscribe", "POST"),
                 new AntPathRequestMatcher("/practice-exams/list", "GET"),
-                new AntPathRequestMatcher("/practice-exams/by-slug/*", "GET")
+                new AntPathRequestMatcher("/practice-exams/by-slug/*", "GET"),
+                new AntPathRequestMatcher("/practice-exams/by-slug/*/sample-questions", "GET")
         );
         return new OrRequestMatcher(matchers);
     }

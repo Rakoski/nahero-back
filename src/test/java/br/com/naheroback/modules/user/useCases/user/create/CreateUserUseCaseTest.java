@@ -56,7 +56,8 @@ class CreateUserUseCaseTest {
         validRequest = new CreateUserRequest(
                 "Test User",
                 "test@example.com",
-                "password123"
+                "password123",
+                null
         );
 
         mockUser = new User();
@@ -125,6 +126,73 @@ class CreateUserUseCaseTest {
 
         verify(userRepository, times(1)).findByEmail(validRequest.email());
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should persist the acquisition tags when the request carries them")
+    void shouldPersistUtmTagsFromRequest() {
+        CreateUserRequest taggedRequest = new CreateUserRequest(
+                "Test User",
+                "test@example.com",
+                "password123",
+                new CreateUserRequest.Utm("google", "cpc", "clf")
+        );
+
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(roleRepository.findByName(RolesEnum.IS_STUDENT.name())).thenReturn(Optional.of(studentRole));
+        when(createUserResponse.toPresentation(any(User.class))).thenReturn(mockResponse);
+
+        createUserUseCase.execute(taggedRequest);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        assertEquals("google", userCaptor.getValue().getUtmSource());
+        assertEquals("cpc", userCaptor.getValue().getUtmMedium());
+        assertEquals("clf", userCaptor.getValue().getUtmCampaign());
+    }
+
+    @Test
+    @DisplayName("Should leave the acquisition tags null for organic sign-ups")
+    void shouldLeaveUtmTagsNullWhenRequestHasNone() {
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(roleRepository.findByName(RolesEnum.IS_STUDENT.name())).thenReturn(Optional.of(studentRole));
+        when(createUserResponse.toPresentation(any(User.class))).thenReturn(mockResponse);
+
+        createUserUseCase.execute(validRequest);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        assertNull(userCaptor.getValue().getUtmSource());
+        assertNull(userCaptor.getValue().getUtmMedium());
+        assertNull(userCaptor.getValue().getUtmCampaign());
+    }
+
+    @Test
+    @DisplayName("Should clamp acquisition tags longer than the column allows")
+    void shouldClampOversizedUtmTags() {
+        String oversized = "x".repeat(200);
+        CreateUserRequest taggedRequest = new CreateUserRequest(
+                "Test User",
+                "test@example.com",
+                "password123",
+                new CreateUserRequest.Utm(oversized, null, null)
+        );
+
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+        when(roleRepository.findByName(RolesEnum.IS_STUDENT.name())).thenReturn(Optional.of(studentRole));
+        when(createUserResponse.toPresentation(any(User.class))).thenReturn(mockResponse);
+
+        createUserUseCase.execute(taggedRequest);
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository, times(1)).save(userCaptor.capture());
+
+        assertEquals(64, userCaptor.getValue().getUtmSource().length());
     }
 
     @Test

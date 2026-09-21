@@ -23,4 +23,17 @@ public interface QuestionRepository extends BaseRepository<Question, Integer> {
 
     @Query("SELECT q.id FROM Question q WHERE q.practiceExam.id = :practiceExamId AND q.language = :language")
     List<Integer> findAllIdsByPracticeExamIdAndLanguage(@Param("practiceExamId") Integer practiceExamId, @Param("language") String language);
+
+    @Query("""
+            SELECT q FROM Question q
+            WHERE q.practiceExam.id = :practiceExamId
+              AND q.language = :language
+              AND COALESCE(q.isActive, true) = true
+              AND q.explanation IS NOT NULL
+              AND LENGTH(TRIM(q.explanation)) > 0
+            ORDER BY q.id ASC
+            """)
+    List<Question> findSampleQuestions(@Param("practiceExamId") Integer practiceExamId,
+                                       @Param("language") String language,
+                                       Pageable pageable);
 }

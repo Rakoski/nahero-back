@@ -26,7 +26,8 @@ import java.util.Set;
     @Index(name = "idx_users_email_confirmed_at", columnList = "email_confirmed_at"),
     @Index(name = "idx_users_external_customer_id", columnList = "external_customer_id"),
     @Index(name = "idx_users_payment_provider", columnList = "payment_provider"),
-    @Index(name = "idx_users_address_id", columnList = "address_id")
+    @Index(name = "idx_users_address_id", columnList = "address_id"),
+    @Index(name = "idx_users_utm_source", columnList = "utm_source")
 })
 @SQLDelete(sql = "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
@@ -82,6 +83,15 @@ public class User extends BaseEntity {
 
     @Column(name = "reengagement_unsubscribe_token")
     private String reengagementUnsubscribeToken;
+
+    @Column(name = "utm_source", length = 64)
+    private String utmSource;
+
+    @Column(name = "utm_medium", length = 64)
+    private String utmMedium;
+
+    @Column(name = "utm_campaign", length = 64)
+    private String utmCampaign;
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "address_id")

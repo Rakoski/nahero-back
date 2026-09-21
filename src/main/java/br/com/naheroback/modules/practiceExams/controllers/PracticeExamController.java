@@ -5,6 +5,8 @@ import br.com.naheroback.modules.practiceExams.useCases.practiceExam.create.Crea
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.create.CreatePracticeExamUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.getBySlug.GetPracticeExamBySlugResponse;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.getBySlug.GetPracticeExamBySlugUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.practiceExam.getSampleQuestions.GetSampleQuestionsResponse;
+import br.com.naheroback.modules.practiceExams.useCases.practiceExam.getSampleQuestions.GetSampleQuestionsUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.list.ListPracticeExamsRequest;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.list.ListPracticeExamsResponse;
 import br.com.naheroback.modules.practiceExams.useCases.practiceExam.list.ListPracticeExamsUseCase;
@@ -17,6 +19,9 @@ import org.springframework.data.querydsl.binding.QuerydslPredicate;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Locale;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/practice-exams")
@@ -24,6 +29,7 @@ public class PracticeExamController {
     private final CreatePracticeExamUseCase createPracticeExamUseCase;
     private final ListPracticeExamsUseCase listPracticeExamsUseCase;
     private final GetPracticeExamBySlugUseCase getPracticeExamBySlugUseCase;
+    private final GetSampleQuestionsUseCase getSampleQuestionsUseCase;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -45,5 +51,11 @@ public class PracticeExamController {
     @ResponseStatus(HttpStatus.OK)
     public GetPracticeExamBySlugResponse getBySlug(@PathVariable String slug) {
         return getPracticeExamBySlugUseCase.execute(slug);
+    }
+
+    @GetMapping("/by-slug/{slug}/sample-questions")
+    @ResponseStatus(HttpStatus.OK)
+    public List<GetSampleQuestionsResponse> getSampleQuestions(@PathVariable String slug, Locale locale) {
+        return getSampleQuestionsUseCase.execute(slug, locale);
     }
 }
