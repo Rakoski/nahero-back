@@ -1,13 +1,12 @@
 package br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.finish;
 
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
 public record FinishStudentPracticeAttemptRequest(
         @NotNull(message = "{studentpracticeattempt.id.required}") Integer studentPracticeAttemptId,
-        @NotEmpty(message = "{studentpracticeattempt.answers.required}") List<AnswerRequest> answers
+        List<AnswerRequest> answers
 ) {
     public record AnswerRequest(
             @NotNull(message = "{question.id.required}") String questionId,

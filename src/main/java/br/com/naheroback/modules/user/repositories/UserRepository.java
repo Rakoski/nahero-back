@@ -17,7 +17,10 @@ public interface UserRepository extends BaseRepository<User, Integer> {
     Optional<User> findByReengagementUnsubscribeToken(String reengagementUnsubscribeToken);
     Optional<User> findByPaymentProviderAndExternalCustomerId(PaymentProviderName provider, String externalCustomerId);
 
+    @Query("SELECT u.freeTriesLeft FROM User u WHERE u.id = :id")
+    Optional<Integer> findFreeTriesLeftById(@Param("id") Integer id);
+
     @Modifying
     @Query("UPDATE User u SET u.freeTriesLeft = u.freeTriesLeft - 1 WHERE u.id = :id AND u.freeTriesLeft > 0")
-    int decrementFreeTriesIfAvailable(@Param("id") Integer id);
+    void decrementFreeTriesIfAvailable(@Param("id") Integer id);
 }

@@ -12,7 +12,8 @@ import jakarta.validation.constraints.Positive;
 import java.time.LocalDateTime;
 
 public record CreateStudentPracticeAttemptRequest(
-    @NotNull(message = "{practiceexam.id.required}") @Positive Integer practiceExamId
+    @NotNull(message = "{practiceexam.id.required}") @Positive Integer practiceExamId,
+    Boolean discardInProgress
 ) {
     public static StudentPracticeAttempt toDomain(Integer enrollmentId, Integer practiceExamId) {
         StudentPracticeAttempt studentPracticeAttempt = new StudentPracticeAttempt();
@@ -21,6 +22,7 @@ public record CreateStudentPracticeAttemptRequest(
         studentPracticeAttempt.setAttemptStatus
                 (ValidateNull.validate(PracticeAttemptStatus.class, PracticeAttemptStatusesEnum.IN_PROGRESS.getId()));
         studentPracticeAttempt.setStartTime(LocalDateTime.now());
+        studentPracticeAttempt.setLastQuestionIndex(0);
         return studentPracticeAttempt;
     }
 }

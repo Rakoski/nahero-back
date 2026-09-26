@@ -1,7 +1,7 @@
 package br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.create;
 
+import br.com.naheroback.common.exceptions.custom.ConflictException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
-import br.com.naheroback.common.exceptions.custom.PaymentRequiredException;
 import br.com.naheroback.modules.auth.services.AuthService;
 import br.com.naheroback.modules.enrollment.entities.Enrollment;
 import br.com.naheroback.modules.enrollment.repositories.EnrollmentRepository;
@@ -9,30 +9,37 @@ import br.com.naheroback.modules.enrollment.useCases.enrollment.create.CreateEnr
 import br.com.naheroback.modules.enrollment.useCases.enrollment.create.CreateEnrollmentUseCase;
 import br.com.naheroback.modules.exams.entities.Exam;
 import br.com.naheroback.modules.exams.repositories.ExamRepository;
-import br.com.naheroback.modules.subscription.services.AccessChecker;
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
+import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptStatusesEnum;
 import br.com.naheroback.modules.practiceExams.repositories.PracticeExamRepository;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
-import br.com.naheroback.modules.user.repositories.UserRepository;
+import br.com.naheroback.modules.practiceExams.services.PracticeAttemptEntitlementService;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.abandon.AbandonStudentPracticeAttemptUseCase;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CreateStudentPracticeAttemptUseCase {
+    public static final String IN_PROGRESS_CONFLICT_CODE = "ATTEMPT_IN_PROGRESS";
+
     private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final CreateEnrollmentUseCase createEnrollmentUseCase;
+    private final AbandonStudentPracticeAttemptUseCase abandonStudentPracticeAttemptUseCase;
     private final PracticeExamRepository practiceExamRepository;
     private final ExamRepository examRepository;
-    private final UserRepository userRepository;
-    private final AccessChecker access;
+    private final PracticeAttemptEntitlementService entitlement;
 
     @Transactional
     @Secured("IS_STUDENT")
@@ -46,10 +53,25 @@ public class CreateStudentPracticeAttemptUseCase {
 
         Integer studentId = AuthService.getUserFromToken().getId();
 
-        if (exam.getDifficultyLevel() > 1 && !access.isPremium()) {
-            if (userRepository.decrementFreeTriesIfAvailable(studentId) == 0) {
-                throw new PaymentRequiredException("payment.required");
+        List<StudentPracticeAttempt> inProgress = studentPracticeAttemptRepository.findByStudentAndStatus(
+                studentId, PracticeAttemptStatusesEnum.IN_PROGRESS.getId());
+
+        Optional<StudentPracticeAttempt> resumable = inProgress.stream()
+                .filter(attempt -> Objects.equals(attempt.getPracticeExam().getId(), practiceExamId))
+                .findFirst();
+
+        if (resumable.isPresent()) return resumable.get().getId();
+
+        entitlement.ensureCanStart(studentId, exam);
+
+        if (!inProgress.isEmpty()) {
+            StudentPracticeAttempt current = inProgress.getFirst();
+
+            if (!Boolean.TRUE.equals(request.discardInProgress())) {
+                throw new ConflictException("attempt.in_progress_conflict", IN_PROGRESS_CONFLICT_CODE, current.getPracticeExam().getTitle());
             }
+
+            inProgress.forEach(attempt -> abandonStudentPracticeAttemptUseCase.execute(attempt.getId()));
         }
 
         Optional<Enrollment> studentsEnrollment = enrollmentRepository.findByExamIdAndStudentId(exam.getId(), studentId);

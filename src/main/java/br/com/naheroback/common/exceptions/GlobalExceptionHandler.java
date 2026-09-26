@@ -1,5 +1,6 @@
 package br.com.naheroback.common.exceptions;
 
+import br.com.naheroback.common.exceptions.custom.ConflictException;
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.EmailNotVerifiedException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
@@ -111,6 +112,28 @@ public class GlobalExceptionHandler {
         log.error("UnprocessableEntityException: {} - Path: {}", exception.getError(), exception.getPath());
 
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(exception);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    protected ResponseEntity<CustomException> conflict(ConflictException e, HttpServletRequest request) {
+        String resolved = messageSource.getMessage(
+                e.getMessageKey(),
+                e.getArgs(),
+                e.getMessageKey(),
+                LocaleContextHolder.getLocale()
+        );
+
+        var exception = CustomException.builder()
+                .status(HttpStatus.CONFLICT)
+                .timestamp(Instant.now())
+                .error(resolved)
+                .errorCode(e.getErrorCode())
+                .path(request.getRequestURI())
+                .build();
+
+        log.warn("ConflictException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(exception);
     }
 
     @ExceptionHandler(EmailNotVerifiedException.class)

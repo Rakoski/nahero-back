@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -19,6 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+@DynamicUpdate
 @Table(name = "student_practice_attempts", indexes = {
     @Index(name = "idx_student_practice_attempts_enrollment", columnList = "enrollment_id"),
     @Index(name = "idx_student_practice_attempts_practice_exam", columnList = "practice_exam_id")
@@ -57,4 +59,7 @@ public class StudentPracticeAttempt extends BaseEntity {
 
     @Column(nullable = false, length = 10)
     private String language;
+
+    @Column(name = "last_question_index")
+    private Integer lastQuestionIndex;
 }
