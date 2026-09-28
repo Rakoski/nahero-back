@@ -8,7 +8,9 @@ import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptSta
 import br.com.naheroback.modules.practiceExams.repositories.PracticeAttemptStatusRepository;
 import br.com.naheroback.modules.practiceExams.repositories.StudentAnswerRepository;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
+import br.com.naheroback.modules.practiceExams.services.AttemptAnswerDraftService;
 import br.com.naheroback.modules.practiceExams.services.AttemptScoringService;
+import br.com.naheroback.modules.practiceExams.services.StudentAttemptAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,11 +28,12 @@ public class TimeOutStudentPracticeAttemptUseCase {
     private final StudentAnswerRepository studentAnswerRepository;
     private final PracticeAttemptStatusRepository practiceAttemptStatusRepository;
     private final AttemptScoringService attemptScoringService;
+    private final AttemptAnswerDraftService draftService;
+    private final StudentAttemptAccessService attemptAccess;
 
     @Transactional
     public void execute(Integer attemptId, TimeOutStudentPracticeAttemptRequest request) {
-        StudentPracticeAttempt attempt = studentPracticeAttemptRepository.findById(attemptId)
-                .orElseThrow(() -> NotFoundException.with(StudentPracticeAttempt.class, "id", attemptId));
+        StudentPracticeAttempt attempt = attemptAccess.loadOwnedAttemptForUpdate(attemptId);
 
         if (!Objects.equals(attempt.getAttemptStatus().getId(), PracticeAttemptStatusesEnum.IN_PROGRESS.getId())) {
             log.info("Timeout requested on attempt {} already in terminal status {} — no-op",
@@ -40,7 +43,8 @@ public class TimeOutStudentPracticeAttemptUseCase {
 
         markTimedOut(attempt);
 
-        List<AttemptScoringService.AnswerData> answerData = (request.answers() == null ? List.<TimeOutStudentPracticeAttemptRequest.AnswerRequest>of() : request.answers())
+        List<AttemptScoringService.AnswerData> submitted =
+                (request.answers() == null ? List.<TimeOutStudentPracticeAttemptRequest.AnswerRequest>of() : request.answers())
                 .stream()
                 .map(answer -> new AttemptScoringService.AnswerData(
                         answer.questionId(),
@@ -49,7 +53,8 @@ public class TimeOutStudentPracticeAttemptUseCase {
                         answer.sumAnswer()))
                 .toList();
 
-        List<StudentAnswer> answers = attemptScoringService.scoreAttempt(attempt, answerData);
+        List<StudentAnswer> answers = attemptScoringService.scoreAttempt(
+                attempt, draftService.mergeWithSubmitted(attempt.getId(), submitted));
 
         studentPracticeAttemptRepository.save(attempt);
         studentAnswerRepository.saveAll(answers);

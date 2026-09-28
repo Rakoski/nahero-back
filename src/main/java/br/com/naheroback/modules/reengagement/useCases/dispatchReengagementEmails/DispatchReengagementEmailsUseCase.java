@@ -3,9 +3,13 @@ package br.com.naheroback.modules.reengagement.useCases.dispatchReengagementEmai
 import br.com.naheroback.common.services.EmailService;
 import br.com.naheroback.common.utils.SecureTokenGenerator;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
+import br.com.naheroback.modules.reengagement.entities.ReengagementDispatchRun;
 import br.com.naheroback.modules.reengagement.entities.ReengagementEmail;
+import br.com.naheroback.modules.reengagement.entities.enums.ReengagementEmailStatus;
 import br.com.naheroback.modules.reengagement.entities.enums.ReengagementEmailType;
 import br.com.naheroback.modules.reengagement.repositories.ReengagementCandidate;
+import br.com.naheroback.modules.reengagement.repositories.ReengagementDispatchRunRepository;
+import br.com.naheroback.modules.reengagement.repositories.ReengagementEmailHistory;
 import br.com.naheroback.modules.reengagement.repositories.ReengagementEmailRepository;
 import br.com.naheroback.modules.reengagement.repositories.ReengagementUserRepository;
 import br.com.naheroback.modules.user.entities.User;
@@ -17,8 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -32,8 +35,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DispatchReengagementEmailsUseCase {
 
+    private static final Set<String> SUPPORTED_LANGUAGES = Set.of("pt", "en");
+    private static final String FALLBACK_LANGUAGE = "en";
+    private static final int LANGUAGE_LOOKBACK_ATTEMPTS = 10;
+    private static final int FAILURE_REASON_MAX_LENGTH = 500;
+
     private final ReengagementUserRepository reengagementUserRepository;
     private final ReengagementEmailRepository reengagementEmailRepository;
+    private final ReengagementDispatchRunRepository reengagementDispatchRunRepository;
     private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
@@ -56,6 +65,9 @@ public class DispatchReengagementEmailsUseCase {
     @Value("${reengagement.min-days-between-emails:7}")
     private int minDaysBetweenEmails;
 
+    @Value("${reengagement.max-attempts-per-step:3}")
+    private int maxAttemptsPerStep;
+
     @Value("${reengagement.default-language:pt}")
     private String defaultLanguage;
 
@@ -64,57 +76,115 @@ public class DispatchReengagementEmailsUseCase {
             initialDelayString = "${reengagement.initial-delay-ms:120000}"
     )
     public void runScheduled() {
-        if (!scheduledEnabled) return;
-        DispatchReengagementEmailsResponse summary = execute();
-        log.info("Re-engagement dispatch (scheduled): candidates={}", summary.candidates());
+        if (!scheduledEnabled) {
+            log.info("Re-engagement dispatch is disabled, skipping the scan");
+            return;
+        }
+
+        try {
+            DispatchReengagementEmailsResponse summary = execute();
+            log.info("Re-engagement dispatch (scheduled): candidates={} sent={} failed={} skipped={}", summary.candidates(), summary.sent(), summary.failed(), summary.skipped());
+        } catch (RuntimeException e) {
+            log.error("Re-engagement dispatch (scheduled) aborted", e);
+        }
     }
 
     public DispatchReengagementEmailsResponse execute() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime campaignStart = now.minusMonths(campaignMonths);
-        LocalDateTime inactiveSince = now.minus(ReengagementEmailType.first().getDelayAfterLastActivity());
-        LocalDateTime cooldownStart = now.minusDays(minDaysBetweenEmails);
+        LocalDateTime startedAt = LocalDateTime.now();
+        LocalDateTime campaignStart = startedAt.minusMonths(campaignMonths);
+        LocalDateTime inactiveSince = startedAt.minus(ReengagementEmailType.first().getDelayAfterLastActivity());
+        LocalDateTime cooldownStart = startedAt.minusDays(minDaysBetweenEmails);
 
-        List<ReengagementCandidate> candidates = reengagementUserRepository.findCampaignCandidates(campaignStart, inactiveSince, cooldownStart, PageRequest.of(0, batchSize));
+        List<ReengagementCandidate> candidates = reengagementUserRepository.findCampaignCandidates(
+                campaignStart, inactiveSince, cooldownStart, ReengagementEmailStatus.SENT,
+                PageRequest.of(0, batchSize));
 
-        if (candidates.isEmpty()) return new DispatchReengagementEmailsResponse(0);
+        DispatchReengagementEmailsResponse summary = dispatchAll(candidates, campaignStart, startedAt);
 
-        Map<Integer, List<ReengagementEmail>> historyByUser = loadHistory(candidates, campaignStart);
+        recordRun(startedAt, summary, campaignStart, inactiveSince, cooldownStart);
+
+        return summary;
+    }
+
+    private DispatchReengagementEmailsResponse dispatchAll(List<ReengagementCandidate> candidates,
+                                                           LocalDateTime campaignStart, LocalDateTime now) {
+        if (candidates.isEmpty()) return new DispatchReengagementEmailsResponse(0, 0, 0, 0);
+
+        Map<Integer, List<ReengagementEmailHistory>> historyByUser = loadHistory(candidates, campaignStart);
+
+        int sent = 0;
+        int failed = 0;
+        int skipped = 0;
 
         for (ReengagementCandidate candidate : candidates) {
-            List<ReengagementEmail> history = historyByUser.getOrDefault(candidate.getUserId(), List.of());
+            List<ReengagementEmailHistory> history = historyByUser.getOrDefault(candidate.getUserId(), List.of());
             Optional<ReengagementEmailType> step = nextStep(candidate, history, now);
 
-            if (step.isEmpty()) continue;
+            if (step.isEmpty()) {
+                skipped++;
+                log.debug("Skipping user {}: no step is due (last activity {})", candidate.getUserId(), candidate.getLastActivityAt());
+                continue;
+            }
 
             try {
                 dispatch(candidate, step.get(), now);
+                sent++;
             } catch (RuntimeException e) {
+                failed++;
                 log.error("Could not send the {} re-engagement email to user {}", step.get(), candidate.getUserId(), e);
             }
         }
 
-        return new DispatchReengagementEmailsResponse(candidates.size());
+        return new DispatchReengagementEmailsResponse(candidates.size(), sent, failed, skipped);
     }
 
-    private Map<Integer, List<ReengagementEmail>> loadHistory(List<ReengagementCandidate> candidates,
-                                                              LocalDateTime campaignStart) {
+    private void recordRun(LocalDateTime startedAt, DispatchReengagementEmailsResponse summary, LocalDateTime campaignStart, LocalDateTime inactiveSince, LocalDateTime cooldownStart) {
+        try {
+            LocalDateTime finishedAt = LocalDateTime.now();
+
+            ReengagementDispatchRun run = new ReengagementDispatchRun();
+            run.setStartedAt(startedAt);
+            run.setFinishedAt(finishedAt);
+            run.setDurationMs(Duration.between(startedAt, finishedAt).toMillis());
+            run.setCandidates(summary.candidates());
+            run.setSent(summary.sent());
+            run.setFailed(summary.failed());
+            run.setSkipped(summary.skipped());
+            run.setFunnel(reengagementUserRepository.findEligibilityFunnel(campaignStart, inactiveSince, cooldownStart));
+
+            reengagementDispatchRunRepository.save(run);
+        } catch (RuntimeException e) {
+            log.warn("Could not record the re-engagement dispatch run", e);
+        }
+    }
+
+    private Map<Integer, List<ReengagementEmailHistory>> loadHistory(List<ReengagementCandidate> candidates,
+                                                                    LocalDateTime campaignStart) {
         List<Integer> userIds = candidates.stream()
                 .map(ReengagementCandidate::getUserId)
                 .toList();
 
-        return reengagementEmailRepository.findByUserIdInAndSentAtAfter(userIds, campaignStart).stream()
-                .collect(Collectors.groupingBy(email -> email.getUser().getId()));
+        return reengagementEmailRepository.findHistoryForUsers(userIds, campaignStart).stream()
+                .collect(Collectors.groupingBy(ReengagementEmailHistory::getUserId));
     }
 
-    private Optional<ReengagementEmailType> nextStep(ReengagementCandidate candidate, List<ReengagementEmail> history, LocalDateTime now) {
-        Set<ReengagementEmailType> alreadySent = history.stream()
+    private Optional<ReengagementEmailType> nextStep(ReengagementCandidate candidate, List<ReengagementEmailHistory> history, LocalDateTime now) {
+        List<ReengagementEmailHistory> campaign = history.stream()
                 .filter(email -> email.getSentAt().isAfter(candidate.getLastActivityAt()))
-                .map(ReengagementEmail::getEmailType)
+                .toList();
+
+        Set<ReengagementEmailType> delivered = campaign.stream()
+                .filter(email -> email.getStatus() == ReengagementEmailStatus.SENT)
+                .map(ReengagementEmailHistory::getEmailType)
                 .collect(Collectors.toSet());
 
+        Map<ReengagementEmailType, Long> failures = campaign.stream()
+                .filter(email -> email.getStatus() == ReengagementEmailStatus.FAILED)
+                .collect(Collectors.groupingBy(ReengagementEmailHistory::getEmailType, Collectors.counting()));
+
         return ReengagementEmailType.sequence().stream()
-                .filter(type -> !alreadySent.contains(type))
+                .filter(type -> !delivered.contains(type))
+                .filter(type -> failures.getOrDefault(type, 0L) < maxAttemptsPerStep)
                 .findFirst()
                 .filter(type -> !now.isBefore(candidate.getLastActivityAt().plus(type.getDelayAfterLastActivity())));
     }
@@ -130,27 +200,49 @@ public class DispatchReengagementEmailsUseCase {
         dispatched.setEmailType(type);
         dispatched.setSentAt(now);
         dispatched.setCampaignStartedAt(candidate.getLastActivityAt());
+        dispatched.setStatus(ReengagementEmailStatus.SENT);
         reengagementEmailRepository.save(dispatched);
 
-        emailService.sendReengagementEmail(user.getEmail(), user.getName(), type.messagePrefix(),
-                actionLink, locale);
+        try {
+            emailService.sendReengagementEmail(user.getEmail(), user.getName(), type.messagePrefix(), actionLink, locale);
+        } catch (RuntimeException e) {
+            dispatched.setStatus(ReengagementEmailStatus.FAILED);
+            dispatched.setFailureReason(failureReason(e));
+            reengagementEmailRepository.save(dispatched);
+            throw e;
+        }
     }
 
-    private String ensureUnsubscribeToken(User user) {
-        String token = user.getReengagementUnsubscribeToken();
+    private String failureReason(RuntimeException e) {
+        Throwable root = e;
 
-        if (token != null && !token.isBlank()) return token;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
 
-        user.setReengagementUnsubscribeToken(SecureTokenGenerator.generate());
-        userRepository.save(user);
+        String reason = "%s: %s".formatted(root.getClass().getSimpleName(), root.getMessage());
 
-        return user.getReengagementUnsubscribeToken();
+        return reason.length() > FAILURE_REASON_MAX_LENGTH
+                ? reason.substring(0, FAILURE_REASON_MAX_LENGTH)
+                : reason;
     }
 
     private Locale resolveLocale(Integer userId) {
-        return studentPracticeAttemptRepository.findRecentLanguagesForStudent(userId, PageRequest.of(0, 1)).stream()
+        return studentPracticeAttemptRepository
+                .findRecentLanguagesForStudent(userId, PageRequest.of(0, LANGUAGE_LOOKBACK_ATTEMPTS)).stream()
+                .map(this::supportedLanguage)
+                .flatMap(Optional::stream)
                 .findFirst()
+                .or(() -> supportedLanguage(defaultLanguage))
                 .map(Locale::forLanguageTag)
-                .orElseGet(() -> Locale.forLanguageTag(defaultLanguage));
+                .orElseGet(() -> Locale.forLanguageTag(FALLBACK_LANGUAGE));
+    }
+
+    private Optional<String> supportedLanguage(String language) {
+        if (language == null || language.isBlank()) return Optional.empty();
+
+        String tag = Locale.forLanguageTag(language.trim().replace('_', '-')).getLanguage();
+
+        return SUPPORTED_LANGUAGES.contains(tag) ? Optional.of(tag) : Optional.empty();
     }
 }

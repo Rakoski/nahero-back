@@ -29,6 +29,7 @@ public class ListAnsweredAnswersResponse {
     private Integer questionPoints;
     private String questionType;
     private String explanation;
+    private Boolean explanationLocked;
 
     private List<AlternativeResponse> alternatives;
 
@@ -61,7 +62,8 @@ public class ListAnsweredAnswersResponse {
     public static ListAnsweredAnswersResponse toPresentation(
             StudentAnswer answer,
             Question question,
-            List<Alternative> alternatives) {
+            List<Alternative> alternatives,
+            boolean includeExplanation) {
 
         return ListAnsweredAnswersResponse.builder()
                 .studentAnswerId(answer.getId())
@@ -75,7 +77,8 @@ public class ListAnsweredAnswersResponse {
                 .questionImageUrl(question.getImageUrl())
                 .questionPoints(question.getPoints())
                 .questionType(question.getQuestionType().getName())
-                .explanation(question.getExplanation())
+                .explanation(includeExplanation ? question.getExplanation() : null)
+                .explanationLocked(!includeExplanation && question.getExplanation() != null)
                 .alternatives(alternatives.stream()
                         .map(alt -> AlternativeResponse.fromEntity(alt, answer.getSelectedAlternativeId()))
                         .toList())

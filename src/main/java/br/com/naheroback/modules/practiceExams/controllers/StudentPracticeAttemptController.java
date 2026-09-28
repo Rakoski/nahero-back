@@ -8,6 +8,11 @@ import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.f
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryFilterDTO;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryResponse;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getInProgress.GetInProgressAttemptUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getState.GetAttemptStateResponse;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getState.GetAttemptStateUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.saveProgress.SaveAttemptProgressRequest;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.saveProgress.SaveAttemptProgressUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.timeout.TimeOutStudentPracticeAttemptRequest;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.timeout.TimeOutStudentPracticeAttemptUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getResult.GetResultResponse;
@@ -37,6 +42,9 @@ public class StudentPracticeAttemptController {
     private final GetResultUseCase getResultUseCase;
     private final GetHistoryUseCase getHistoryUseCase;
     private final GetDashboardSummaryUseCase getDashboardSummaryUseCase;
+    private final GetAttemptStateUseCase getAttemptStateUseCase;
+    private final GetInProgressAttemptUseCase getInProgressAttemptUseCase;
+    private final SaveAttemptProgressUseCase saveAttemptProgressUseCase;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -61,6 +69,25 @@ public class StudentPracticeAttemptController {
     public void timeout(@PathVariable Integer attemptId,
                         @Valid @RequestBody TimeOutStudentPracticeAttemptRequest request) {
         timeOutStudentPracticeAttemptUseCase.execute(attemptId, request);
+    }
+
+    @PutMapping("/{attemptId}/progress")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void saveProgress(@PathVariable Integer attemptId,
+                             @Valid @RequestBody SaveAttemptProgressRequest request) {
+        saveAttemptProgressUseCase.execute(attemptId, request);
+    }
+
+    @GetMapping("/in-progress")
+    public ResponseEntity<GetAttemptStateResponse> getInProgress() {
+        return getInProgressAttemptUseCase.execute()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @GetMapping("/{attemptId}/state")
+    public GetAttemptStateResponse getState(@PathVariable Integer attemptId) {
+        return getAttemptStateUseCase.execute(attemptId);
     }
 
     @GetMapping("/{attemptId}/result")

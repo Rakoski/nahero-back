@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.reengagement.entities;
 
 import br.com.naheroback.common.entities.BaseEntity;
+import br.com.naheroback.modules.reengagement.entities.enums.ReengagementEmailStatus;
 import br.com.naheroback.modules.reengagement.entities.enums.ReengagementEmailType;
 import br.com.naheroback.modules.user.entities.User;
 import jakarta.persistence.*;
@@ -20,7 +21,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "reengagement_emails", indexes = {
     @Index(name = "idx_reengagement_emails_user", columnList = "user_id"),
-    @Index(name = "idx_reengagement_emails_sent_at", columnList = "sent_at")
+    @Index(name = "idx_reengagement_emails_sent_at", columnList = "sent_at"),
+    @Index(name = "idx_reengagement_emails_status", columnList = "status")
 })
 @SQLDelete(sql = "UPDATE reengagement_emails SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
@@ -39,4 +41,11 @@ public class ReengagementEmail extends BaseEntity {
 
     @Column(name = "campaign_started_at", nullable = false)
     private LocalDateTime campaignStartedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 32)
+    private ReengagementEmailStatus status;
+
+    @Column(name = "failure_reason", columnDefinition = "TEXT")
+    private String failureReason;
 }

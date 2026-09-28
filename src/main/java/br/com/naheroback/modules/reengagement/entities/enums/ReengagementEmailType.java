@@ -7,7 +7,11 @@ import java.util.List;
 
 @Getter
 public enum ReengagementEmailType {
-    WE_MISS_YOU(7, "we_miss_you", "/practice-exams");
+    WE_MISS_YOU(7, "we_miss_you", "/practice-exams"),
+    STREAK_BROKEN(14, "streak_broken", "/student/dashboard"),
+    NEW_CONTENT(30, "new_content", "/practice-exams"),
+    PROGRESS_RECAP(90, "progress_recap", "/student/history"),
+    LAST_CALL(180, "last_call", "/practice-exams");
 
     private static final String MESSAGE_PREFIX = "email.reengagement.";
 
