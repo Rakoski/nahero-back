@@ -6,6 +6,7 @@ import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
 import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptStatusesEnum;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
+import br.com.naheroback.modules.practiceExams.services.PracticeAttemptEntitlementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +36,12 @@ public class GetDashboardSummaryUseCase {
     );
 
     private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
+    private final PracticeAttemptEntitlementService entitlement;
 
     @Transactional(readOnly = true)
     public GetDashboardSummaryResponse execute() {
+        entitlement.ensureCanSeeStudyFeedback();
+
         Integer studentId = AuthService.getUserFromToken().getId();
 
         List<StudentPracticeAttempt> attempts =
@@ -54,7 +58,7 @@ public class GetDashboardSummaryUseCase {
                 .passRate(passRate(finalized))
                 .averageScore(averageScore(finalized))
                 .bestScore(bestScore(finalized))
-                .totalStudyMinutes(totalStudyMinutes(finalized))
+                .totalStudyMinutes(totalStudyMinutes(attempts))
                 .currentStreakDays(currentStreakDays(attempts))
                 .attemptsByStatus(attemptsByStatus(attempts))
                 .scoreOverTime(scoreOverTime(finalized))
@@ -96,8 +100,10 @@ public class GetDashboardSummaryUseCase {
         return (int) Math.round(100.0 * attempt.getScore() / total);
     }
 
-    private Long totalStudyMinutes(List<StudentPracticeAttempt> finalized) {
-        return finalized.stream()
+    private Long totalStudyMinutes(List<StudentPracticeAttempt> attempts) {
+        return attempts.stream()
+                .filter(a -> a.getAttemptStatus() != null
+                        && PracticeAttemptStatusesEnum.COMPLETED.getId().equals(a.getAttemptStatus().getId()))
                 .filter(a -> a.getStartTime() != null && a.getEndTime() != null)
                 .mapToLong(a -> Duration.between(a.getStartTime(), a.getEndTime()).toMinutes())
                 .sum();

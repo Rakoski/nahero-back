@@ -1,7 +1,6 @@
 package br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt;
 
 import br.com.naheroback.common.exceptions.custom.ConflictException;
-import br.com.naheroback.common.exceptions.custom.PaymentRequiredException;
 import br.com.naheroback.modules.auth.entities.AuthenticatedUser;
 import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptStatusesEnum;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.create.CreateStudentPracticeAttemptRequest;
@@ -39,9 +38,9 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Covers the resume lifecycle end to end: the free try is only spent when an attempt is
- * finalized, auto-saved answers survive leaving the page, and switching practice exams
- * needs the student's confirmation.
+ * Covers the resume lifecycle end to end: practice exams are unlimited and free, auto-saved
+ * answers survive leaving the page, and switching practice exams needs the student's
+ * confirmation.
  */
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -136,14 +135,6 @@ class PracticeAttemptResumeIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should not spend the free try just for starting a paid attempt")
-    void shouldNotSpendTheFreeTryOnStart() {
-        createAttempt.execute(new CreateStudentPracticeAttemptRequest(firstPracticeExamId, null), Locale.ENGLISH);
-
-        assertEquals(1, freeTriesLeft());
-    }
-
-    @Test
     @DisplayName("Should hand back the running attempt when the same practice exam is started again")
     void shouldResumeInsteadOfStartingOver() {
         Integer first = createAttempt.execute(
@@ -213,8 +204,8 @@ class PracticeAttemptResumeIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should let the student switch practice exams without spending the free try")
-    void shouldSwitchExamsKeepingTheFreeTry() {
+    @DisplayName("Should let the student switch practice exams once the switch is confirmed")
+    void shouldSwitchExamsOnConfirmation() {
         Integer firstAttemptId = createAttempt.execute(
                 new CreateStudentPracticeAttemptRequest(firstPracticeExamId, null), Locale.ENGLISH);
 
@@ -224,12 +215,11 @@ class PracticeAttemptResumeIntegrationTest {
         assertNotEquals(firstAttemptId, secondAttemptId);
         assertEquals(PracticeAttemptStatusesEnum.ABANDONED.getId(), statusOf(firstAttemptId));
         assertEquals(PracticeAttemptStatusesEnum.IN_PROGRESS.getId(), statusOf(secondAttemptId));
-        assertEquals(1, freeTriesLeft());
     }
 
     @Test
-    @DisplayName("Should score the auto-saved answers and spend the free try only on finish")
-    void shouldScoreAutoSavedAnswersAndSpendTheFreeTryOnFinish() {
+    @DisplayName("Should score the auto-saved answers on finish")
+    void shouldScoreAutoSavedAnswersOnFinish() {
         Integer attemptId = createAttempt.execute(
                 new CreateStudentPracticeAttemptRequest(firstPracticeExamId, null), Locale.ENGLISH);
 
@@ -242,13 +232,12 @@ class PracticeAttemptResumeIntegrationTest {
 
         assertEquals(PracticeAttemptStatusesEnum.COMPLETED.getId(), statusOf(attemptId));
         assertEquals(QUESTIONS_PER_EXAM, scoreOf(attemptId));
-        assertEquals(0, freeTriesLeft());
         assertTrue(getInProgress.execute().isEmpty());
     }
 
     @Test
-    @DisplayName("Should require a subscription once the free try has been spent on a finished attempt")
-    void shouldRequirePaymentAfterTheFreeTryIsSpent() {
+    @DisplayName("Should keep letting the student start practice exams after finishing one")
+    void shouldKeepPracticeExamsFreeAfterAFinishedAttempt() {
         Integer attemptId = createAttempt.execute(
                 new CreateStudentPracticeAttemptRequest(firstPracticeExamId, null), Locale.ENGLISH);
 
@@ -257,8 +246,10 @@ class PracticeAttemptResumeIntegrationTest {
 
         finishAttempt.execute(new FinishStudentPracticeAttemptRequest(attemptId, null));
 
-        assertThrows(PaymentRequiredException.class, () -> createAttempt.execute(
+        Integer nextAttemptId = assertDoesNotThrow(() -> createAttempt.execute(
                 new CreateStudentPracticeAttemptRequest(secondPracticeExamId, null), Locale.ENGLISH));
+
+        assertEquals(PracticeAttemptStatusesEnum.IN_PROGRESS.getId(), statusOf(nextAttemptId));
     }
 
     @Test
@@ -339,10 +330,6 @@ class PracticeAttemptResumeIntegrationTest {
     private Integer wrongAlternativeOf(Integer questionId) {
         return jdbcTemplate.queryForObject(
                 "SELECT id FROM alternatives WHERE question_id = ? AND is_correct = false", Integer.class, questionId);
-    }
-
-    private int freeTriesLeft() {
-        return jdbcTemplate.queryForObject("SELECT free_tries_left FROM users WHERE id = ?", Integer.class, studentId);
     }
 
     private int statusOf(Integer attemptId) {

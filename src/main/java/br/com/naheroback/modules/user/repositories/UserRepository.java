@@ -3,9 +3,6 @@ package br.com.naheroback.modules.user.repositories;
 import br.com.naheroback.common.repositories.BaseRepository;
 import br.com.naheroback.modules.user.entities.User;
 import br.com.naheroback.providers.payment.PaymentProviderName;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
@@ -16,11 +13,4 @@ public interface UserRepository extends BaseRepository<User, Integer> {
     Optional<User> findByEmailVerificationToken(String emailVerificationToken);
     Optional<User> findByReengagementUnsubscribeToken(String reengagementUnsubscribeToken);
     Optional<User> findByPaymentProviderAndExternalCustomerId(PaymentProviderName provider, String externalCustomerId);
-
-    @Query("SELECT u.freeTriesLeft FROM User u WHERE u.id = :id")
-    Optional<Integer> findFreeTriesLeftById(@Param("id") Integer id);
-
-    @Modifying
-    @Query("UPDATE User u SET u.freeTriesLeft = u.freeTriesLeft - 1 WHERE u.id = :id AND u.freeTriesLeft > 0")
-    void decrementFreeTriesIfAvailable(@Param("id") Integer id);
 }

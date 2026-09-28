@@ -1,14 +1,13 @@
 package br.com.naheroback.modules.practiceExams.useCases.answer.listAnswered;
 
-import br.com.naheroback.common.exceptions.custom.NotFoundException;
 import br.com.naheroback.modules.practiceExams.entities.Alternative;
 import br.com.naheroback.modules.practiceExams.entities.Question;
 import br.com.naheroback.modules.practiceExams.entities.StudentAnswer;
-import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
 import br.com.naheroback.modules.practiceExams.repositories.AlternativeRepository;
 import br.com.naheroback.modules.practiceExams.repositories.QuestionRepository;
 import br.com.naheroback.modules.practiceExams.repositories.StudentAnswerRepository;
-import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
+import br.com.naheroback.modules.practiceExams.services.PracticeAttemptEntitlementService;
+import br.com.naheroback.modules.practiceExams.services.StudentAttemptAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,16 +21,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ListAnsweredAnswersUseCase {
     private final StudentAnswerRepository studentAnswerRepository;
-    private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
+    private final StudentAttemptAccessService attemptAccess;
     private final QuestionRepository questionRepository;
     private final AlternativeRepository alternativeRepository;
+    private final PracticeAttemptEntitlementService entitlement;
 
     public Page<ListAnsweredAnswersResponse> execute(
             Integer studentPracticeAttemptId,
             AnswerFilterDTO filter,
             Pageable pageable) {
-        studentPracticeAttemptRepository.findById(studentPracticeAttemptId)
-                .orElseThrow(() -> NotFoundException.with(StudentPracticeAttempt.class, "studentPracticeAttemptId", studentPracticeAttemptId));
+        attemptAccess.loadOwnedAttempt(studentPracticeAttemptId);
+
+        boolean includeExplanation = entitlement.canSeeExplanations();
 
         Page<StudentAnswer> answersPage = studentAnswerRepository.findByAttemptIdWithFilters(
                 studentPracticeAttemptId,
@@ -57,7 +58,7 @@ public class ListAnsweredAnswersUseCase {
         return answersPage.map(answer -> {
             Question question = questionsMap.get(answer.getQuestionId());
             List<Alternative> alternatives = alternativesMap.getOrDefault(answer.getQuestionId(), List.of());
-            return ListAnsweredAnswersResponse.toPresentation(answer, question, alternatives);
+            return ListAnsweredAnswersResponse.toPresentation(answer, question, alternatives, includeExplanation);
         });
     }
 }

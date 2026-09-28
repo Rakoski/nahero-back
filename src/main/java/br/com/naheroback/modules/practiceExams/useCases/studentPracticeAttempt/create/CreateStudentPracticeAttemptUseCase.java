@@ -14,7 +14,6 @@ import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
 import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptStatusesEnum;
 import br.com.naheroback.modules.practiceExams.repositories.PracticeExamRepository;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
-import br.com.naheroback.modules.practiceExams.services.PracticeAttemptEntitlementService;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.abandon.AbandonStudentPracticeAttemptUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +38,6 @@ public class CreateStudentPracticeAttemptUseCase {
     private final AbandonStudentPracticeAttemptUseCase abandonStudentPracticeAttemptUseCase;
     private final PracticeExamRepository practiceExamRepository;
     private final ExamRepository examRepository;
-    private final PracticeAttemptEntitlementService entitlement;
 
     @Transactional
     @Secured("IS_STUDENT")
@@ -61,8 +59,6 @@ public class CreateStudentPracticeAttemptUseCase {
                 .findFirst();
 
         if (resumable.isPresent()) return resumable.get().getId();
-
-        entitlement.ensureCanStart(studentId, exam);
 
         if (!inProgress.isEmpty()) {
             StudentPracticeAttempt current = inProgress.getFirst();

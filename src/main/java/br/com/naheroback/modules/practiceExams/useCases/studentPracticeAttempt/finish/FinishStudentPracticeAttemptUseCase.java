@@ -8,7 +8,6 @@ import br.com.naheroback.modules.practiceExams.repositories.StudentAnswerReposit
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
 import br.com.naheroback.modules.practiceExams.services.AttemptAnswerDraftService;
 import br.com.naheroback.modules.practiceExams.services.AttemptScoringService;
-import br.com.naheroback.modules.practiceExams.services.PracticeAttemptEntitlementService;
 import br.com.naheroback.modules.practiceExams.services.StudentAttemptAccessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +28,6 @@ public class FinishStudentPracticeAttemptUseCase {
     private final AttemptScoringService attemptScoringService;
     private final AttemptAnswerDraftService draftService;
     private final StudentAttemptAccessService attemptAccess;
-    private final PracticeAttemptEntitlementService entitlement;
 
     @Transactional
     public void execute(FinishStudentPracticeAttemptRequest request) {
@@ -57,7 +55,6 @@ public class FinishStudentPracticeAttemptUseCase {
 
         studentPracticeAttemptRepository.save(attempt);
         studentAnswerRepository.saveAll(answers);
-        entitlement.consumeFreeTryOnCompletion(attempt);
     }
 
     private void updateAttemptStatus(StudentPracticeAttempt attempt) {

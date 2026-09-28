@@ -4,6 +4,7 @@ import br.com.naheroback.modules.auth.services.AuthService;
 import br.com.naheroback.modules.practiceExams.entities.QStudentPracticeAttempt;
 import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
+import br.com.naheroback.modules.practiceExams.services.PracticeAttemptEntitlementService;
 import com.querydsl.core.BooleanBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,9 +21,12 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class GetHistoryUseCase {
     private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
+    private final PracticeAttemptEntitlementService entitlement;
 
     @Transactional(readOnly = true)
     public Page<GetHistoryResponse> execute(GetHistoryFilterDTO filter, Pageable pageable) {
+        entitlement.ensureCanSeeHistory();
+
         Integer studentId = AuthService.getUserFromToken().getId();
 
         Pageable sortedPageable = PageRequest.of(
