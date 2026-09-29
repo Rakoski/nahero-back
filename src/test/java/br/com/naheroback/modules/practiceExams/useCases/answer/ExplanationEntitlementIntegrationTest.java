@@ -216,7 +216,7 @@ class ExplanationEntitlementIntegrationTest {
         jdbcTemplate.update("""
                 INSERT INTO subscriptions (user_id, provider, external_subscription_id, status,
                                            current_period_end, cancel_at_period_end)
-                VALUES (?, 'STRIPE', ?, 'active', ?, false)
+                VALUES (?, 'STRIPE', ?, 'ACTIVE', ?, false)
                 """, studentId, "sub_test_%s".formatted(System.nanoTime()), currentPeriodEnd);
     }
 }

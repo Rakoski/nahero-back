@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ public class ListAnsweredAnswersUseCase {
     private final AlternativeRepository alternativeRepository;
     private final PracticeAttemptEntitlementService entitlement;
 
+    @Transactional(readOnly = true)
     public Page<ListAnsweredAnswersResponse> execute(
             Integer studentPracticeAttemptId,
             AnswerFilterDTO filter,
