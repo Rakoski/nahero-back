@@ -1,5 +1,6 @@
 package br.com.naheroback.common.exceptions;
 
+import br.com.naheroback.common.exceptions.custom.BadRequestException;
 import br.com.naheroback.common.exceptions.custom.ConflictException;
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.EmailNotVerifiedException;
@@ -199,6 +200,20 @@ public class GlobalExceptionHandler {
         log.warn("TooManyRequestsException - Path: {}", exception.getPath());
 
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(exception);
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    protected ResponseEntity<CustomException> badRequest(BadRequestException e, HttpServletRequest request) {
+        var exception = CustomException.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .timestamp(Instant.now())
+                .error(e.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        log.error("BadRequestException: {} - Path: {}", exception.getError(), exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

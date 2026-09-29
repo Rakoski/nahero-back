@@ -27,8 +27,13 @@ public class GetResultResponse {
     private String attemptStatus;
     private Integer numberOfQuestions;
     private List<Integer> incorrectQuestionIds;
+    private List<QuestionResult> questions;
 
-    public static GetResultResponse toPresentation(StudentPracticeAttempt attempt, List<StudentAnswer> studentAnswers) {
+    public record QuestionResult(Integer questionId, String domain, Boolean correct) {}
+
+    public static GetResultResponse toPresentation(StudentPracticeAttempt attempt,
+                                                   List<StudentAnswer> studentAnswers,
+                                                   Map<Integer, String> domainByQuestionId) {
         GetResultResponse response = new GetResultResponse();
         PracticeExam attemptedPracticeExam = attempt.getPracticeExam();
 
@@ -40,6 +45,7 @@ public class GetResultResponse {
         response.setCorrectAnswers(analysis.correctCount());
         response.setIncorrectAnswers(analysis.incorrectCount());
         response.setAnswers(analysis.totalQuestions());
+        response.setQuestions(toQuestionResults(analysis.resultsByQuestionId(), domainByQuestionId));
 
         response.setStartTime(attempt.getStartTime());
         response.setEndTime(attempt.getEndTime());
@@ -75,8 +81,20 @@ public class GetResultResponse {
                 questionResults.size(),
                 correctCount,
                 incorrectIds.size(),
-                incorrectIds
+                incorrectIds,
+                questionResults
         );
+    }
+
+    private static List<QuestionResult> toQuestionResults(Map<Integer, Boolean> resultsByQuestionId,
+                                                          Map<Integer, String> domainByQuestionId) {
+        return resultsByQuestionId.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> new QuestionResult(
+                        entry.getKey(),
+                        domainByQuestionId.get(entry.getKey()),
+                        entry.getValue()))
+                .toList();
     }
 
     private static int calculateTimeSpent(LocalDateTime startTime, LocalDateTime endTime) {
@@ -96,6 +114,7 @@ public class GetResultResponse {
             int totalQuestions,
             int correctCount,
             int incorrectCount,
-            List<Integer> incorrectQuestionIds
+            List<Integer> incorrectQuestionIds,
+            Map<Integer, Boolean> resultsByQuestionId
     ) {}
 }
