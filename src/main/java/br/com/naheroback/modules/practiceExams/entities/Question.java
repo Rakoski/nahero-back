@@ -23,7 +23,8 @@ import org.hibernate.annotations.SQLRestriction;
     @Index(name = "idx_questions_teacher_id", columnList = "teacher_id"),
     @Index(name = "idx_questions_is_active", columnList = "is_active"),
     @Index(name = "idx_questions_deleted_at", columnList = "deleted_at"),
-    @Index(name = "idx_questions_version", columnList = "version")
+    @Index(name = "idx_questions_version", columnList = "version"),
+    @Index(name = "idx_questions_practice_exam_domain", columnList = "practice_exam_id, domain")
 })
 @SQLDelete(sql = "UPDATE questions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
@@ -65,4 +66,7 @@ public class Question extends BaseEntity {
 
     @Column
     private String language;
+
+    @Column(length = 160)
+    private String domain;
 }

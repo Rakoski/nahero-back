@@ -18,6 +18,17 @@ public interface QuestionRepository extends BaseRepository<Question, Integer> {
     @Query("SELECT q FROM Question q WHERE q.id IN :ids")
     List<Question> findAllByIdIn(@Param("ids") List<Integer> ids);
 
+    @Query("SELECT q FROM Question q JOIN FETCH q.practiceExam WHERE q.id IN :ids")
+    List<Question> findAllByIdInWithPracticeExam(@Param("ids") List<Integer> ids);
+
+    @Query("""
+            SELECT q FROM Question q
+            JOIN FETCH q.practiceExam pe
+            WHERE pe.slug = :slug
+            ORDER BY q.id ASC
+            """)
+    List<Question> findAllByPracticeExamSlug(@Param("slug") String slug);
+
     @Query("SELECT q.id FROM Question q WHERE q.practiceExam.id = :practiceExamId")
     List<Integer> findAllIdsByPracticeExamId(@Param("practiceExamId") Integer practiceExamId);
 
