@@ -4,6 +4,8 @@ import br.com.naheroback.common.utils.Constants;
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.practiceExams.entities.StudentAnswer;
 import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
+import br.com.naheroback.modules.practiceExams.services.AttemptDomainBreakdownService;
+import br.com.naheroback.modules.practiceExams.services.AttemptDomainBreakdownService.DomainScore;
 import lombok.Data;
 
 import java.time.Duration;
@@ -28,6 +30,10 @@ public class GetResultResponse {
     private Integer numberOfQuestions;
     private List<Integer> incorrectQuestionIds;
     private List<QuestionResult> questions;
+    private List<DomainScore> domains;
+    private String weakestDomain;
+    private String practiceExamSlug;
+    private String practiceExamTitle;
 
     public record QuestionResult(Integer questionId, String domain, Boolean correct) {}
 
@@ -47,6 +53,10 @@ public class GetResultResponse {
         response.setAnswers(analysis.totalQuestions());
         response.setQuestions(toQuestionResults(analysis.resultsByQuestionId(), domainByQuestionId));
 
+        List<DomainScore> domains = AttemptDomainBreakdownService.breakdown(studentAnswers, domainByQuestionId);
+        response.setDomains(domains);
+        response.setWeakestDomain(AttemptDomainBreakdownService.weakest(domains).map(DomainScore::domain).orElse(null));
+
         response.setStartTime(attempt.getStartTime());
         response.setEndTime(attempt.getEndTime());
         response.setTimeSpentInMinutes(calculateTimeSpent(attempt.getStartTime(), attempt.getEndTime()));
@@ -54,6 +64,8 @@ public class GetResultResponse {
         response.setNumberOfQuestions(getNumberOfQuestions(attemptedPracticeExam));
         response.setTimeLimit(attemptedPracticeExam.getTimeLimit());
         response.setPassingPercentageScore(attemptedPracticeExam.getPassingScore());
+        response.setPracticeExamSlug(attemptedPracticeExam.getSlug());
+        response.setPracticeExamTitle(attemptedPracticeExam.getTitle());
 
         response.setAttemptStatus(attempt.getAttemptStatus().getName());
 
