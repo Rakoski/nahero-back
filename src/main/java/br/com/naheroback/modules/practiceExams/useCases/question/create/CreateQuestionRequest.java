@@ -23,6 +23,7 @@ public record CreateQuestionRequest(
         String explanation,
         Integer points,
         String language,
+        String domain,
         List<AlternativeRequest> alternatives
 ) {
 

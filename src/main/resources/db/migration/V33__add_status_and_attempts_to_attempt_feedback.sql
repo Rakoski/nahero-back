@@ -1,0 +1,7 @@
+ALTER TABLE attempt_feedback
+    ADD COLUMN status VARCHAR(16) NOT NULL DEFAULT 'READY',
+    ADD COLUMN attempts INTEGER NOT NULL DEFAULT 1,
+    ADD COLUMN failure_reason TEXT NULL,
+    ADD COLUMN updated_at TIMESTAMP NULL,
+    ALTER COLUMN content DROP NOT NULL,
+    ALTER COLUMN prompt_hash DROP NOT NULL;

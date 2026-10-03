@@ -1,7 +1,13 @@
 package br.com.naheroback.modules.reengagement.useCases.dispatchReengagementEmails;
 
 import br.com.naheroback.common.services.EmailService;
+import br.com.naheroback.modules.practiceExams.entities.PracticeAttemptStatus;
+import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
+import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
+import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptStatusesEnum;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
+import br.com.naheroback.modules.practiceExams.services.AttemptDomainBreakdownService;
+import br.com.naheroback.modules.practiceExams.services.AttemptDomainBreakdownService.DomainScore;
 import br.com.naheroback.modules.reengagement.entities.ReengagementDispatchRun;
 import br.com.naheroback.modules.reengagement.entities.ReengagementEmail;
 import br.com.naheroback.modules.reengagement.entities.enums.ReengagementEmailStatus;
@@ -28,6 +34,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -54,6 +61,9 @@ class DispatchReengagementEmailsUseCaseTest {
 
     @Mock
     private EmailService emailService;
+
+    @Mock
+    private AttemptDomainBreakdownService attemptDomainBreakdownService;
 
     @InjectMocks
     private DispatchReengagementEmailsUseCase dispatchReengagementEmailsUseCase;
@@ -93,7 +103,7 @@ class DispatchReengagementEmailsUseCaseTest {
                 eq("test@example.com"),
                 eq("Test User"),
                 eq(ReengagementEmailType.WE_MISS_YOU.messagePrefix()),
-                eq("https://nahero.site/pt/practice-exams"),
+                eq("https://nahero.site/pt/practice-exams?utm_source=email&utm_medium=reengagement&utm_campaign=we_miss_you"),
                 eq(Locale.forLanguageTag("pt")));
     }
 
@@ -125,7 +135,7 @@ class DispatchReengagementEmailsUseCaseTest {
 
         verify(emailService).sendReengagementEmail(anyString(), anyString(),
                 eq(ReengagementEmailType.STREAK_BROKEN.messagePrefix()),
-                eq("https://nahero.site/pt/student/dashboard"), any(Locale.class));
+                eq("https://nahero.site/pt/student/dashboard?utm_source=email&utm_medium=reengagement&utm_campaign=streak_broken"), any(Locale.class));
     }
 
     @Test
@@ -235,7 +245,7 @@ class DispatchReengagementEmailsUseCaseTest {
         dispatchReengagementEmailsUseCase.execute();
 
         verify(emailService).sendReengagementEmail(anyString(), anyString(), anyString(),
-                eq("https://nahero.site/pt/practice-exams"), eq(Locale.forLanguageTag("pt")));
+                eq("https://nahero.site/pt/practice-exams?utm_source=email&utm_medium=reengagement&utm_campaign=we_miss_you"), eq(Locale.forLanguageTag("pt")));
     }
 
     @Test
@@ -248,7 +258,7 @@ class DispatchReengagementEmailsUseCaseTest {
         dispatchReengagementEmailsUseCase.execute();
 
         verify(emailService).sendReengagementEmail(anyString(), anyString(), anyString(),
-                eq("https://nahero.site/en/practice-exams"), eq(Locale.forLanguageTag("en")));
+                eq("https://nahero.site/en/practice-exams?utm_source=email&utm_medium=reengagement&utm_campaign=we_miss_you"), eq(Locale.forLanguageTag("en")));
     }
 
     @Test
@@ -261,7 +271,7 @@ class DispatchReengagementEmailsUseCaseTest {
         dispatchReengagementEmailsUseCase.execute();
 
         verify(emailService).sendReengagementEmail(anyString(), anyString(), anyString(),
-                eq("https://nahero.site/en/practice-exams"), eq(Locale.forLanguageTag("en")));
+                eq("https://nahero.site/en/practice-exams?utm_source=email&utm_medium=reengagement&utm_campaign=we_miss_you"), eq(Locale.forLanguageTag("en")));
     }
 
     @Test
@@ -274,7 +284,7 @@ class DispatchReengagementEmailsUseCaseTest {
         dispatchReengagementEmailsUseCase.execute();
 
         verify(emailService).sendReengagementEmail(anyString(), anyString(), anyString(),
-                eq("https://nahero.site/pt/practice-exams"), eq(Locale.forLanguageTag("pt")));
+                eq("https://nahero.site/pt/practice-exams?utm_source=email&utm_medium=reengagement&utm_campaign=we_miss_you"), eq(Locale.forLanguageTag("pt")));
     }
 
     @Test
@@ -287,7 +297,7 @@ class DispatchReengagementEmailsUseCaseTest {
         dispatchReengagementEmailsUseCase.execute();
 
         verify(emailService).sendReengagementEmail(anyString(), anyString(), anyString(),
-                eq("https://nahero.site/pt/practice-exams"), eq(Locale.forLanguageTag("pt")));
+                eq("https://nahero.site/pt/practice-exams?utm_source=email&utm_medium=reengagement&utm_campaign=we_miss_you"), eq(Locale.forLanguageTag("pt")));
     }
 
     @Test
@@ -370,6 +380,122 @@ class DispatchReengagementEmailsUseCaseTest {
         assertNotNull(run.getFinishedAt());
     }
 
+    @Test
+    @DisplayName("Should send the result follow-up with the attempt's numbers three days after a completed attempt")
+    void shouldSendTheResultFollowupForARecentCompletedAttempt() {
+        LocalDateTime startedAt = LocalDateTime.now().minusDays(4);
+        StudentPracticeAttempt attempt = attempt(PracticeAttemptStatusesEnum.COMPLETED, startedAt, 40, "en");
+        givenCandidates(candidate(startedAt));
+        givenNoHistory();
+        givenLatestAttempt(attempt);
+        when(attemptDomainBreakdownService.breakdown(attempt)).thenReturn(List.of(
+                new DomainScore("Security and Compliance", 3, 12),
+                new DomainScore("Cloud Concepts", 14, 16)));
+        when(userRepository.findById(1)).thenReturn(Optional.of(mockUser));
+
+        DispatchReengagementEmailsResponse response = dispatchReengagementEmailsUseCase.execute();
+
+        assertEquals(1, response.sent());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> model = ArgumentCaptor.forClass(Map.class);
+        verify(emailService).sendReengagementEmail(
+                eq("test@example.com"),
+                eq("Test User"),
+                eq(ReengagementEmailType.RESULT_FOLLOWUP.messagePrefix()),
+                eq(Locale.forLanguageTag("en")),
+                model.capture());
+        verify(emailService, never()).sendReengagementEmail(anyString(), anyString(), anyString(), anyString(), any(Locale.class));
+        verify(studentPracticeAttemptRepository, never()).findRecentLanguagesForStudent(anyInt(), any(Pageable.class));
+
+        assertEquals("AWS Cloud Practitioner", model.getValue().get("examTitle"));
+        assertEquals(40, model.getValue().get("score"));
+        assertEquals(65, model.getValue().get("total"));
+        assertEquals("Security and Compliance", model.getValue().get("weakestDomain"));
+        assertEquals(3, model.getValue().get("weakestCorrect"));
+        assertEquals(12, model.getValue().get("weakestTotal"));
+        assertEquals("https://nahero.site/en/practice-exams/aws-cloud-practitioner-clf-02"
+                        + "?utm_source=email&utm_medium=reengagement&utm_campaign=result_followup",
+                model.getValue().get("actionLink"));
+
+        ArgumentCaptor<ReengagementEmail> recorded = ArgumentCaptor.forClass(ReengagementEmail.class);
+        verify(reengagementEmailRepository).save(recorded.capture());
+        assertEquals(ReengagementEmailType.RESULT_FOLLOWUP, recorded.getValue().getEmailType());
+    }
+
+    @Test
+    @DisplayName("Should skip the result follow-up for a signup-only user without sending anything early")
+    void shouldSkipTheResultFollowupForASignupOnlyUser() {
+        givenCandidates(candidate(LocalDateTime.now().minusDays(4)));
+        givenNoHistory();
+        when(studentPracticeAttemptRepository.findLatestForStudent(eq(1), any(Pageable.class))).thenReturn(List.of());
+
+        DispatchReengagementEmailsResponse response = dispatchReengagementEmailsUseCase.execute();
+
+        assertEquals(1, response.skipped());
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    @DisplayName("Should not let the skipped result follow-up block the next step for a signup-only user")
+    void shouldNotBlockTheSequenceForASignupOnlyUser() {
+        givenCandidates(candidate(LocalDateTime.now().minusDays(8)));
+        givenNoHistory();
+        givenUserIsLoadable();
+
+        dispatchReengagementEmailsUseCase.execute();
+
+        verify(emailService).sendReengagementEmail(anyString(), anyString(),
+                eq(ReengagementEmailType.WE_MISS_YOU.messagePrefix()), anyString(), any(Locale.class));
+    }
+
+    @Test
+    @DisplayName("Should skip the result follow-up and continue the sequence when the attempt is older than seven days")
+    void shouldSkipTheResultFollowupForAnAttemptOlderThanSevenDays() {
+        LocalDateTime startedAt = LocalDateTime.now().minusDays(8);
+        givenCandidates(candidate(startedAt));
+        givenNoHistory();
+        lenient().when(studentPracticeAttemptRepository.findLatestForStudent(eq(1), any(Pageable.class)))
+                .thenReturn(List.of(attempt(PracticeAttemptStatusesEnum.COMPLETED, startedAt, 40, "en")));
+        givenUserIsLoadable();
+
+        DispatchReengagementEmailsResponse response = dispatchReengagementEmailsUseCase.execute();
+
+        assertEquals(1, response.sent());
+        verify(emailService).sendReengagementEmail(anyString(), anyString(),
+                eq(ReengagementEmailType.WE_MISS_YOU.messagePrefix()), anyString(), any(Locale.class));
+        verify(emailService, never()).sendReengagementEmail(anyString(), anyString(), anyString(), any(Locale.class), anyMap());
+    }
+
+    @Test
+    @DisplayName("Should skip the result follow-up when the latest attempt was not completed")
+    void shouldSkipTheResultFollowupWhenTheLatestAttemptWasNotCompleted() {
+        LocalDateTime startedAt = LocalDateTime.now().minusDays(4);
+        givenCandidates(candidate(startedAt));
+        givenNoHistory();
+        givenLatestAttempt(attempt(PracticeAttemptStatusesEnum.ABANDONED, startedAt, null, "en"));
+
+        DispatchReengagementEmailsResponse response = dispatchReengagementEmailsUseCase.execute();
+
+        assertEquals(1, response.skipped());
+        verifyNoInteractions(emailService, attemptDomainBreakdownService);
+    }
+
+    @Test
+    @DisplayName("Should move on to the next step once the result follow-up has been delivered")
+    void shouldMoveOnAfterTheResultFollowup() {
+        LocalDateTime startedAt = LocalDateTime.now().minusDays(8);
+        givenCandidates(candidate(startedAt));
+        when(reengagementEmailRepository.findHistoryForUsers(anyCollection(), any(LocalDateTime.class)))
+                .thenReturn(List.of(sentEmail(ReengagementEmailType.RESULT_FOLLOWUP, startedAt.plusDays(3))));
+        givenUserIsLoadable();
+
+        dispatchReengagementEmailsUseCase.execute();
+
+        verify(emailService).sendReengagementEmail(anyString(), anyString(),
+                eq(ReengagementEmailType.WE_MISS_YOU.messagePrefix()), anyString(), any(Locale.class));
+    }
+
     private void givenCandidates(ReengagementCandidate... candidates) {
         when(reengagementUserRepository.findCampaignCandidates(any(LocalDateTime.class), any(LocalDateTime.class),
                 any(LocalDateTime.class), eq(ReengagementEmailStatus.SENT), any(Pageable.class)))
@@ -389,6 +515,31 @@ class DispatchReengagementEmailsUseCaseTest {
         when(userRepository.findById(1)).thenReturn(Optional.of(mockUser));
         when(studentPracticeAttemptRepository.findRecentLanguagesForStudent(eq(1), any(Pageable.class)))
                 .thenReturn(List.of(languages));
+    }
+
+    private void givenLatestAttempt(StudentPracticeAttempt attempt) {
+        when(studentPracticeAttemptRepository.findLatestForStudent(eq(1), any(Pageable.class)))
+                .thenReturn(List.of(attempt));
+    }
+
+    private StudentPracticeAttempt attempt(PracticeAttemptStatusesEnum status, LocalDateTime startedAt,
+                                           Integer score, String language) {
+        PracticeExam practiceExam = new PracticeExam();
+        practiceExam.setTitle("AWS Cloud Practitioner");
+        practiceExam.setSlug("aws-cloud-practitioner-clf-02");
+        practiceExam.setNumberOfQuestions(65);
+
+        PracticeAttemptStatus attemptStatus = new PracticeAttemptStatus();
+        attemptStatus.setId(status.getId());
+
+        StudentPracticeAttempt attempt = new StudentPracticeAttempt();
+        attempt.setId(99);
+        attempt.setPracticeExam(practiceExam);
+        attempt.setAttemptStatus(attemptStatus);
+        attempt.setStartTime(startedAt);
+        attempt.setScore(score);
+        attempt.setLanguage(language);
+        return attempt;
     }
 
     private ReengagementCandidate candidate(LocalDateTime lastActivity) {

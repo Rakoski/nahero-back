@@ -54,6 +54,8 @@ class DispatchReengagementEmailsIntegrationTest {
     private Integer userId;
     private String email;
     private LocalDateTime testStartedAt;
+    private Integer examId;
+    private Integer practiceExamId;
 
     @BeforeEach
     void setUp() {
@@ -78,6 +80,17 @@ class DispatchReengagementEmailsIntegrationTest {
 
     @AfterEach
     void tearDown() {
+        if (practiceExamId != null) {
+            jdbcTemplate.update("""
+                    DELETE FROM student_answers WHERE student_practice_attempt_id IN
+                        (SELECT id FROM student_practice_attempts WHERE practice_exam_id = ?)
+                    """, practiceExamId);
+            jdbcTemplate.update("DELETE FROM student_practice_attempts WHERE practice_exam_id = ?", practiceExamId);
+            jdbcTemplate.update("DELETE FROM enrollments WHERE student_id = ?", userId);
+            jdbcTemplate.update("DELETE FROM questions WHERE practice_exam_id = ?", practiceExamId);
+            jdbcTemplate.update("DELETE FROM practice_exams WHERE id = ?", practiceExamId);
+            jdbcTemplate.update("DELETE FROM exams WHERE id = ?", examId);
+        }
         jdbcTemplate.update("DELETE FROM reengagement_dispatch_runs WHERE started_at >= ?", testStartedAt);
         jdbcTemplate.update("DELETE FROM reengagement_emails WHERE user_id = ?", userId);
         jdbcTemplate.update("DELETE FROM user_roles WHERE user_id = ?", userId);
@@ -126,7 +139,7 @@ class DispatchReengagementEmailsIntegrationTest {
     @DisplayName("Should ignore a candidate who has been idle for less than the first step delay")
     void shouldIgnoreCandidatesInsideTheFirstStepDelay() {
         jdbcTemplate.update("UPDATE users SET created_at = ? WHERE id = ?",
-                LocalDateTime.now().minusDays(3), userId);
+                LocalDateTime.now().minusDays(2), userId);
 
         dispatchReengagementEmailsUseCase.execute();
 
@@ -154,7 +167,8 @@ class DispatchReengagementEmailsIntegrationTest {
         dispatchReengagementEmailsUseCase.execute();
 
         verify(emailService).sendReengagementEmail(eq(email), anyString(), anyString(),
-                endsWith("/pt/practice-exams"), eq(Locale.forLanguageTag("pt")));
+                endsWith("/pt/practice-exams?utm_source=email&utm_medium=reengagement&utm_campaign=we_miss_you"),
+                eq(Locale.forLanguageTag("pt")));
     }
 
     @Test
@@ -175,6 +189,91 @@ class DispatchReengagementEmailsIntegrationTest {
         assertEquals(0, run.get("failed"));
         assertNotNull(run.get("eligible"));
         assertTrue((Integer) run.get("students") >= 1);
+    }
+
+    @Test
+    @DisplayName("Should send the result follow-up for a completed attempt from four days ago")
+    @SuppressWarnings("unchecked")
+    void shouldSendTheResultFollowupForARecentCompletedAttempt() {
+        insertCompletedAttempt(LocalDateTime.now().minusDays(4), "en");
+
+        dispatchReengagementEmailsUseCase.execute();
+
+        assertEquals(1, countOfType(ReengagementEmailType.RESULT_FOLLOWUP));
+
+        org.mockito.ArgumentCaptor<Map<String, Object>> model = org.mockito.ArgumentCaptor.forClass(Map.class);
+        verify(emailService).sendReengagementEmail(eq(email), anyString(),
+                eq(ReengagementEmailType.RESULT_FOLLOWUP.messagePrefix()), eq(Locale.forLanguageTag("en")),
+                model.capture());
+
+        assertEquals("Followup Practice", model.getValue().get("examTitle"));
+        assertEquals(1, model.getValue().get("score"));
+        assertEquals(3, model.getValue().get("total"));
+        assertEquals("Security and Compliance", model.getValue().get("weakestDomain"));
+        assertEquals(0, model.getValue().get("weakestCorrect"));
+        assertEquals(2, model.getValue().get("weakestTotal"));
+        assertTrue(((String) model.getValue().get("actionLink"))
+                .matches(".*/en/practice-exams/followup-practice-\\d+\\?utm_source=email&utm_medium=reengagement&utm_campaign=result_followup"));
+    }
+
+    @Test
+    @DisplayName("Should skip the result follow-up for a signup-only user without failing or sending")
+    void shouldSkipTheResultFollowupForASignupOnlyUser() {
+        jdbcTemplate.update("UPDATE users SET created_at = ? WHERE id = ?",
+                LocalDateTime.now().minusDays(4), userId);
+
+        DispatchReengagementEmailsResponse response = dispatchReengagementEmailsUseCase.execute();
+
+        assertEquals(0, response.failed());
+        assertEquals(0, countWithStatus(ReengagementEmailStatus.SENT));
+        verify(emailService, never()).sendReengagementEmail(eq(email), anyString(), anyString(),
+                any(Locale.class), anyMap());
+    }
+
+    @Test
+    @DisplayName("Should skip the result follow-up and send the next step when the attempt is older than seven days")
+    void shouldContinueTheSequenceWhenTheAttemptIsOlderThanSevenDays() {
+        insertCompletedAttempt(LocalDateTime.now().minusDays(8), "en");
+
+        dispatchReengagementEmailsUseCase.execute();
+
+        assertEquals(0, countOfType(ReengagementEmailType.RESULT_FOLLOWUP));
+        assertEquals(1, countOfType(ReengagementEmailType.WE_MISS_YOU));
+        verify(emailService).sendReengagementEmail(eq(email), anyString(),
+                eq(ReengagementEmailType.WE_MISS_YOU.messagePrefix()), anyString(), any(Locale.class));
+    }
+
+    private void insertCompletedAttempt(LocalDateTime startedAt, String language) {
+        examId = jdbcTemplate.queryForObject("""
+                INSERT INTO exams (title, difficulty_level, is_active) VALUES ('Followup Exam', 2, true) RETURNING id
+                """, Integer.class);
+        practiceExamId = jdbcTemplate.queryForObject("""
+                INSERT INTO practice_exams (exam_id, title, slug, passing_score, time_limit, number_of_questions, is_active)
+                VALUES (?, 'Followup Practice', ?, 50, 60, 3, true) RETURNING id
+                """, Integer.class, examId, "followup-practice-" + System.nanoTime());
+        Integer enrollmentId = jdbcTemplate.queryForObject(
+                "INSERT INTO enrollments (student_id, exam_id) VALUES (?, ?) RETURNING id",
+                Integer.class, userId, examId);
+        Integer attemptId = jdbcTemplate.queryForObject("""
+                INSERT INTO student_practice_attempts (enrollment_id, practice_exam_id, status, start_time, end_time,
+                                                       score, passed, language)
+                VALUES (?, ?, 2, ?, ?, 1, false, ?) RETURNING id
+                """, Integer.class, enrollmentId, practiceExamId, startedAt, startedAt.plusMinutes(30), language);
+
+        insertAnswer(attemptId, "Security and Compliance", false);
+        insertAnswer(attemptId, "Security and Compliance", false);
+        insertAnswer(attemptId, "Cloud Concepts", true);
+    }
+
+    private void insertAnswer(Integer attemptId, String domain, boolean correct) {
+        Integer questionId = jdbcTemplate.queryForObject("""
+                INSERT INTO questions (practice_exam_id, question_type_id, content, points, version, is_active, language, domain)
+                VALUES (?, 3, 'Question', 1, 1, true, 'en', ?) RETURNING id
+                """, Integer.class, practiceExamId, domain);
+        jdbcTemplate.update("""
+                INSERT INTO student_answers (student_practice_attempt_id, question_id, question_version, is_correct)
+                VALUES (?, ?, 1, ?)
+                """, attemptId, questionId, correct);
     }
 
     private int countWithStatus(ReengagementEmailStatus status) {

@@ -27,4 +27,8 @@ public class PracticeAttemptEntitlementService {
     public boolean canSeeExplanations() {
         return access.isPremium();
     }
+
+    public boolean canSeeStudyPlan() {
+        return access.isPremium();
+    }
 }
