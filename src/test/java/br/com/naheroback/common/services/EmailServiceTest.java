@@ -2,6 +2,8 @@ package br.com.naheroback.common.services;
 
 import br.com.naheroback.common.configs.ErrorMessageConfig;
 import freemarker.template.Configuration;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,6 +66,48 @@ class EmailServiceTest {
                 "https://nahero.site/en/practice-exams", Locale.ENGLISH);
 
         assertEquals("We saved your spot | Nahero", sentMessage().getSubject());
+    }
+
+    @Test
+    @DisplayName("Should render the announcement with its feature list and the unsubscribe link")
+    void shouldRenderTheAnnouncement() throws Exception {
+        emailService.sendAnnouncementEmail("aluno@example.com", "Ana", "email.announcement.feedback_launch",
+                Locale.forLanguageTag("pt"), "https://nahero.site/pt/how-it-works",
+                "https://api.nahero.site/reengagement/unsubscribe?token=abc");
+
+        MimeMessage sent = sentMessage();
+        sent.saveChanges();
+        String body = html(sent);
+
+        assertEquals("Novidade na NaHero: saiba exatamente o que estudar", sent.getSubject());
+        assertNotNull(body);
+        assertTrue(body.contains("Página de feedback: suas últimas tentativas"));
+        assertTrue(body.contains("Um painel com quantas questões você respondeu"));
+        assertTrue(body.contains("https://api.nahero.site/reengagement/unsubscribe?token=abc"));
+        assertTrue(body.contains("Parar de receber lembretes e novidades"));
+    }
+
+    @Test
+    @DisplayName("Should keep the static re-engagement emails free of an unsubscribe block they did not ask for")
+    void shouldNotRenderAnUnsubscribeBlockWithoutALink() throws Exception {
+        emailService.sendReengagementEmail("student@example.com", "Ana", "email.reengagement.we_miss_you",
+                "https://nahero.site/en/practice-exams", Locale.ENGLISH);
+
+        MimeMessage sent = sentMessage();
+        sent.saveChanges();
+
+        assertFalse(html(sent).contains("Stop receiving reminders and updates"));
+    }
+
+    private static String html(Part part) throws Exception {
+        if (part.isMimeType("text/html")) return (String) part.getContent();
+        if (part.getContent() instanceof Multipart multipart) {
+            for (int index = 0; index < multipart.getCount(); index++) {
+                String found = html(multipart.getBodyPart(index));
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     private Map<String, Object> followupModel() {
