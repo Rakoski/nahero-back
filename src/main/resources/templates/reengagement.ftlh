@@ -156,6 +156,14 @@
                                                                         <p
                                                                             style="margin:0;font-size:15px;text-align:left;mso-line-height-alt:22.5px">
                                                                             ${intro}</p>
+                                                                        <#if features?? && features?has_content>
+                                                                        <ul
+                                                                            style="margin:12px 0 0 0;padding-left:20px;font-size:15px;text-align:left;mso-line-height-alt:22.5px;color:#4a3c2d">
+                                                                            <#list features as feature>
+                                                                            <li style="margin:0 0 6px 0">${feature}</li>
+                                                                            </#list>
+                                                                        </ul>
+                                                                        </#if>
                                                                         <p
                                                                             style="margin:12px 0 0 0;font-size:15px;text-align:left;mso-line-height-alt:22.5px;padding:12px 16px;background-color:#faf6f0;border-left:3px solid #c8894a;color:#4a3c2d">
                                                                             ${highlight}</p>
@@ -278,6 +286,14 @@
                                                                             <a href="mailto:${supportEmail}"
                                                                                 style="color:#8a7a68;text-decoration:none">${supportEmail}</a>
                                                                         </p>
+                                                                        <#if unsubscribeLink??>
+                                                                        <p
+                                                                            style="margin:8px 0 0 0;font-size:12px;text-align:center;mso-line-height-alt:18px">
+                                                                            ${unsubscribe_intro}
+                                                                            <a href="${unsubscribeLink}" target="_blank"
+                                                                                style="color:#8a7a68;text-decoration:underline">${unsubscribe_cta}</a>
+                                                                        </p>
+                                                                        </#if>
                                                                     </div>
                                                                 </div>
                                                             </td>

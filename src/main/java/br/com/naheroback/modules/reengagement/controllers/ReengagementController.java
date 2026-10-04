@@ -1,5 +1,8 @@
 package br.com.naheroback.modules.reengagement.controllers;
 
+import br.com.naheroback.modules.reengagement.entities.enums.AnnouncementCampaign;
+import br.com.naheroback.modules.reengagement.useCases.sendAnnouncement.SendAnnouncementResponse;
+import br.com.naheroback.modules.reengagement.useCases.sendAnnouncement.SendAnnouncementUseCase;
 import br.com.naheroback.modules.reengagement.useCases.unsubscribe.UnsubscribeFromReengagementRequest;
 import br.com.naheroback.modules.reengagement.useCases.unsubscribe.UnsubscribeFromReengagementUseCase;
 import jakarta.validation.constraints.NotBlank;
@@ -17,6 +20,7 @@ import java.net.URI;
 public class ReengagementController {
 
     private final UnsubscribeFromReengagementUseCase unsubscribeFromReengagementUseCase;
+    private final SendAnnouncementUseCase sendAnnouncementUseCase;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -28,6 +32,12 @@ public class ReengagementController {
         return ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(frontendUrl + "/?unsubscribed=true"))
                 .build();
+    }
+
+    @PostMapping("/announcements/{campaign}")
+    public ResponseEntity<SendAnnouncementResponse> sendAnnouncement(@PathVariable AnnouncementCampaign campaign, @RequestParam(defaultValue = "true") boolean dryRun) {
+        SendAnnouncementResponse response = sendAnnouncementUseCase.execute(campaign, dryRun);
+        return ResponseEntity.status(dryRun ? HttpStatus.OK : HttpStatus.ACCEPTED).body(response);
     }
 
     @PostMapping("/unsubscribe")

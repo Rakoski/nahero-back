@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.io.StringWriter;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -155,6 +156,24 @@ public class EmailService {
 
         String body = render(REENGAGEMENT_TEMPLATE, model);
         sendHtmlWithLogo(to, (String) model.get("subject"), body);
+    }
+
+    public void sendAnnouncementEmail(String to, String name, String messagePrefix, Locale locale, String actionLink, String unsubscribeLink) {
+        Map<String, Object> content = new HashMap<>();
+        content.put("actionLink", actionLink);
+        content.put("unsubscribeLink", unsubscribeLink);
+        content.put("features", translateList(messagePrefix + ".feature", locale));
+
+        sendReengagementEmail(to, name, messagePrefix, locale, content);
+    }
+
+    private List<String> translateList(String keyPrefix, Locale locale) {
+        List<String> items = new ArrayList<>();
+        for (int index = 1; ; index++) {
+            String item = messageSource.getMessage("%s_%d".formatted(keyPrefix, index), null, null, locale);
+            if (item == null) return items;
+            items.add(item);
+        }
     }
 
     private String buildEmailVerificationLink(String token, Locale locale) {
