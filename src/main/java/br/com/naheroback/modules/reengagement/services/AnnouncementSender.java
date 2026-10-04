@@ -77,8 +77,7 @@ public class AnnouncementSender {
         announcementEmailRepository.save(record);
 
         try {
-            emailService.sendAnnouncementEmail(user.getEmail(), user.getName(), campaign.messagePrefix(), locale,
-                    actionLink(campaign, locale), unsubscribeLink(user));
+            deliver(user, campaign, locale);
             return true;
         } catch (RuntimeException e) {
             record.setStatus(ReengagementEmailStatus.FAILED);
@@ -87,6 +86,20 @@ public class AnnouncementSender {
             log.error("Could not send the {} announcement to user {}", campaign, userId, e);
             return false;
         }
+    }
+
+    public Locale sendTest(User user, AnnouncementCampaign campaign, String language) {
+        Locale locale = supportedLanguage(language)
+                .map(Locale::forLanguageTag)
+                .orElseGet(() -> resolveLocale(user.getId()));
+
+        deliver(user, campaign, locale);
+        return locale;
+    }
+
+    private void deliver(User user, AnnouncementCampaign campaign, Locale locale) {
+        emailService.sendAnnouncementEmail(user.getEmail(), user.getName(), campaign.messagePrefix(), locale,
+                actionLink(campaign, locale), unsubscribeLink(user));
     }
 
     private String actionLink(AnnouncementCampaign campaign, Locale locale) {
