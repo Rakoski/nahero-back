@@ -1,5 +1,6 @@
 package br.com.naheroback.modules.reengagement.useCases.sendAnnouncement;
 
+import br.com.naheroback.common.exceptions.custom.NotFoundException;
 import br.com.naheroback.common.services.EmailService;
 import br.com.naheroback.modules.auth.entities.AuthenticatedUser;
 import br.com.naheroback.modules.reengagement.entities.enums.AnnouncementCampaign;
@@ -152,6 +153,48 @@ class AnnouncementIntegrationTest {
         authenticateAs(createUser(RolesEnum.IS_STUDENT, true, false));
 
         assertThrows(AccessDeniedException.class, () -> sendAnnouncement.execute(CAMPAIGN, true));
+    }
+
+    @Test
+    @DisplayName("Should send a test to one person, in the requested language, without recording it")
+    void shouldSendATestToOnePerson() {
+        Integer userId = createUser(RolesEnum.IS_STUDENT, true, false);
+        String email = userRepository.findById(userId).orElseThrow().getEmail();
+        authenticateAs(createUser(RolesEnum.IS_ADMIN, true, false));
+
+        SendAnnouncementTestResponse response = sendAnnouncement.sendTest(CAMPAIGN,
+                new SendAnnouncementTestRequest(email, "en"));
+
+        assertEquals("en", response.language());
+        verify(emailService, times(1)).sendAnnouncementEmail(eq(email), eq("Announcement Student"),
+                eq(CAMPAIGN.messagePrefix()), eq(Locale.ENGLISH),
+                endsWith("/en/how-it-works?utm_source=email&utm_medium=announcement&utm_campaign=feedback_launch"),
+                contains("/reengagement/unsubscribe?token="));
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM announcement_emails WHERE user_id = ?", Integer.class, userId));
+        assertTrue(announcementEmailRepository.findRecipientIds(CAMPAIGN.getSlug(), ReengagementEmailStatus.SENT)
+                .contains(userId));
+    }
+
+    @Test
+    @DisplayName("Should refuse a test send to an email that has no account")
+    void shouldRefuseATestToAnUnknownEmail() {
+        authenticateAs(createUser(RolesEnum.IS_ADMIN, true, false));
+
+        assertThrows(NotFoundException.class, () -> sendAnnouncement.sendTest(CAMPAIGN,
+                new SendAnnouncementTestRequest("nobody-%s@example.com".formatted(System.nanoTime()), null)));
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    @DisplayName("Should refuse a test send to anyone who is not an admin")
+    void shouldRefuseTestSendsToNonAdmins() {
+        Integer userId = createUser(RolesEnum.IS_STUDENT, true, false);
+        authenticateAs(userId);
+        String email = userRepository.findById(userId).orElseThrow().getEmail();
+
+        assertThrows(AccessDeniedException.class, () -> sendAnnouncement.sendTest(CAMPAIGN,
+                new SendAnnouncementTestRequest(email, null)));
     }
 
     private Integer createUser(RolesEnum roleName, boolean confirmed, boolean optedOut) {

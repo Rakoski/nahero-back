@@ -2,9 +2,12 @@ package br.com.naheroback.modules.reengagement.controllers;
 
 import br.com.naheroback.modules.reengagement.entities.enums.AnnouncementCampaign;
 import br.com.naheroback.modules.reengagement.useCases.sendAnnouncement.SendAnnouncementResponse;
+import br.com.naheroback.modules.reengagement.useCases.sendAnnouncement.SendAnnouncementTestRequest;
+import br.com.naheroback.modules.reengagement.useCases.sendAnnouncement.SendAnnouncementTestResponse;
 import br.com.naheroback.modules.reengagement.useCases.sendAnnouncement.SendAnnouncementUseCase;
 import br.com.naheroback.modules.reengagement.useCases.unsubscribe.UnsubscribeFromReengagementRequest;
 import br.com.naheroback.modules.reengagement.useCases.unsubscribe.UnsubscribeFromReengagementUseCase;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +41,12 @@ public class ReengagementController {
     public ResponseEntity<SendAnnouncementResponse> sendAnnouncement(@PathVariable AnnouncementCampaign campaign, @RequestParam(defaultValue = "true") boolean dryRun) {
         SendAnnouncementResponse response = sendAnnouncementUseCase.execute(campaign, dryRun);
         return ResponseEntity.status(dryRun ? HttpStatus.OK : HttpStatus.ACCEPTED).body(response);
+    }
+
+    @PostMapping("/announcements/{campaign}/test")
+    public SendAnnouncementTestResponse sendAnnouncementTest(@PathVariable AnnouncementCampaign campaign,
+                                                             @Valid @RequestBody SendAnnouncementTestRequest request) {
+        return sendAnnouncementUseCase.sendTest(campaign, request);
     }
 
     @PostMapping("/unsubscribe")
