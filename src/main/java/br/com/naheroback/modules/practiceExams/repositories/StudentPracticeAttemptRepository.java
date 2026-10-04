@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,16 @@ public interface StudentPracticeAttemptRepository extends BaseRepository<Student
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM StudentPracticeAttempt a WHERE a.id = :id")
     Optional<StudentPracticeAttempt> findByIdForUpdate(@Param("id") Integer id);
+
+    @Query("""
+        SELECT a FROM StudentPracticeAttempt a
+        JOIN FETCH a.practiceExam
+        JOIN FETCH a.attemptStatus
+        JOIN FETCH a.enrollment e
+        JOIN FETCH e.student
+        WHERE a.id = :id
+    """)
+    Optional<StudentPracticeAttempt> findByIdWithDetails(@Param("id") Integer id);
 
     @Query("""
         SELECT a FROM StudentPracticeAttempt a
@@ -34,6 +45,56 @@ public interface StudentPracticeAttemptRepository extends BaseRepository<Student
     """)
     List<StudentPracticeAttempt> findByStudentAndStatus(@Param("studentId") Integer studentId,
                                                        @Param("statusId") Integer statusId);
+
+    @Query("""
+        SELECT a FROM StudentPracticeAttempt a
+        JOIN FETCH a.practiceExam
+        JOIN FETCH a.attemptStatus
+        WHERE a.enrollment.student.id = :studentId
+        ORDER BY a.startTime DESC, a.id DESC
+    """)
+    List<StudentPracticeAttempt> findLatestForStudent(@Param("studentId") Integer studentId, Pageable pageable);
+
+    @Query("""
+        SELECT a FROM StudentPracticeAttempt a
+        WHERE a.enrollment.student.id = :studentId
+          AND a.practiceExam.id = :practiceExamId
+          AND a.id <> :attemptId
+          AND a.score IS NOT NULL
+          AND a.startTime < :before
+        ORDER BY a.startTime DESC, a.id DESC
+    """)
+    List<StudentPracticeAttempt> findPreviousScored(@Param("studentId") Integer studentId,
+                                                    @Param("practiceExamId") Integer practiceExamId,
+                                                    @Param("attemptId") Integer attemptId,
+                                                    @Param("before") LocalDateTime before,
+                                                    Pageable pageable);
+
+    @Query("""
+        SELECT pe.id AS practiceExamId, pe.slug AS slug, pe.title AS title
+        FROM StudentPracticeAttempt a
+        JOIN a.practiceExam pe
+        WHERE a.enrollment.student.id = :studentId AND a.score IS NOT NULL
+        GROUP BY pe.id, pe.slug, pe.title
+        ORDER BY MAX(a.startTime) DESC
+    """)
+    List<FeedbackExamOption> findFeedbackExamOptions(@Param("studentId") Integer studentId);
+
+    @Query("""
+        SELECT a FROM StudentPracticeAttempt a
+        JOIN FETCH a.practiceExam pe
+        WHERE a.enrollment.student.id = :studentId AND pe.id = :practiceExamId AND a.score IS NOT NULL
+        ORDER BY a.startTime DESC, a.id DESC
+    """)
+    List<StudentPracticeAttempt> findRecentScored(@Param("studentId") Integer studentId,
+                                                  @Param("practiceExamId") Integer practiceExamId,
+                                                  Pageable pageable);
+
+    @Query("""
+        SELECT COUNT(a) > 0 FROM StudentPracticeAttempt a
+        WHERE a.enrollment.student.id = :studentId AND a.practiceExam.id = :practiceExamId AND a.score IS NOT NULL
+    """)
+    boolean existsScored(@Param("studentId") Integer studentId, @Param("practiceExamId") Integer practiceExamId);
 
     @Query("""
         SELECT a.language FROM StudentPracticeAttempt a

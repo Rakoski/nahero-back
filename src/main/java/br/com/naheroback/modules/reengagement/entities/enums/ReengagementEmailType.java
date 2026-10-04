@@ -7,6 +7,7 @@ import java.util.List;
 
 @Getter
 public enum ReengagementEmailType {
+    RESULT_FOLLOWUP(3, "result_followup", "/practice-exams"),
     WE_MISS_YOU(7, "we_miss_you", "/practice-exams"),
     STREAK_BROKEN(14, "streak_broken", "/student/dashboard"),
     NEW_CONTENT(30, "new_content", "/practice-exams"),

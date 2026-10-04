@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import java.io.StringWriter;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -80,6 +79,15 @@ public class EmailService {
             "cta"
     );
 
+    private static final List<String> REENGAGEMENT_MESSAGE_ARGUMENTS = List.of(
+            "score",
+            "total",
+            "examTitle",
+            "weakestDomain",
+            "weakestCorrect",
+            "weakestTotal"
+    );
+
     private final Configuration freemarkerConfiguration;
     private final JavaMailSender mailSender;
     private final MessageSource messageSource;
@@ -125,16 +133,25 @@ public class EmailService {
     }
 
     public void sendReengagementEmail(String to, String name, String messagePrefix, String actionLink, Locale locale) {
-        List<String> keys = new ArrayList<>(REENGAGEMENT_COMMON_KEYS);
-        REENGAGEMENT_CONTENT_KEYS.forEach(key -> keys.add("%s.%s".formatted(messagePrefix, key)));
+        sendReengagementEmail(to, name, messagePrefix, locale, Map.of("actionLink", actionLink));
+    }
 
-        Map<String, Object> model = translate(keys, locale, name);
+    public void sendReengagementEmail(String to, String name, String messagePrefix, Locale locale, Map<String, Object> content) {
+        Object[] contentArguments = REENGAGEMENT_MESSAGE_ARGUMENTS.stream().map(content::get).toArray();
+
+        Map<String, Object> model = new HashMap<>(content);
+        model.putAll(translate(REENGAGEMENT_COMMON_KEYS, locale, name));
+        model.putAll(translate(List.of(messagePrefix + ".greeting"), locale, name));
+        model.putAll(translate(REENGAGEMENT_CONTENT_KEYS.stream()
+                .filter(key -> !key.equals("greeting"))
+                .map(key -> "%s.%s".formatted(messagePrefix, key))
+                .toList(), locale, contentArguments));
 
         model.put("name", name);
         model.put("logoUrl", "cid:" + LOGO_CONTENT_ID);
         model.put("supportEmail", fromSupport);
         model.put("siteUrl", frontendUrl);
-        model.put("link", actionLink);
+        model.put("link", content.get("actionLink"));
 
         String body = render(REENGAGEMENT_TEMPLATE, model);
         sendHtmlWithLogo(to, (String) model.get("subject"), body);

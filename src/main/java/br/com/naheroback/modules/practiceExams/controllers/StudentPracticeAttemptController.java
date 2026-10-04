@@ -5,6 +5,8 @@ import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.c
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.create.CreateStudentPracticeAttemptUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.finish.FinishStudentPracticeAttemptRequest;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.finish.FinishStudentPracticeAttemptUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getFeedback.GetAttemptFeedbackResponse;
+import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getFeedback.GetAttemptFeedbackUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryFilterDTO;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryResponse;
 import br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt.getHistory.GetHistoryUseCase;
@@ -45,6 +47,7 @@ public class StudentPracticeAttemptController {
     private final GetAttemptStateUseCase getAttemptStateUseCase;
     private final GetInProgressAttemptUseCase getInProgressAttemptUseCase;
     private final SaveAttemptProgressUseCase saveAttemptProgressUseCase;
+    private final GetAttemptFeedbackUseCase getAttemptFeedbackUseCase;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -94,6 +97,13 @@ public class StudentPracticeAttemptController {
     public ResponseEntity<GetResultResponse> getResult(@PathVariable Integer attemptId) {
         GetResultResponse result = getResultUseCase.execute(attemptId);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{attemptId}/feedback")
+    public ResponseEntity<GetAttemptFeedbackResponse> getFeedback(@PathVariable Integer attemptId,
+                                                                  @RequestParam(defaultValue = "false") boolean retry) {
+        GetAttemptFeedbackResponse feedback = getAttemptFeedbackUseCase.execute(attemptId, retry);
+        return ResponseEntity.status(feedback.isPending() ? HttpStatus.ACCEPTED : HttpStatus.OK).body(feedback);
     }
 
     @GetMapping("/history")

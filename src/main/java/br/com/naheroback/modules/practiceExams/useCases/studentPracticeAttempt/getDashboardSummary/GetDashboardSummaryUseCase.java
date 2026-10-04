@@ -5,6 +5,8 @@ import br.com.naheroback.modules.auth.services.AuthService;
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
 import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptStatusesEnum;
+import br.com.naheroback.modules.practiceExams.repositories.AttemptQuestionCount;
+import br.com.naheroback.modules.practiceExams.repositories.StudentAnswerRepository;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
 import br.com.naheroback.modules.practiceExams.services.PracticeAttemptEntitlementService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +32,7 @@ public class GetDashboardSummaryUseCase {
 
     private static final int RECENT_SCORE_POINTS = 20;
     private static final int ACTIVITY_DAYS = 30;
+    private static final List<Integer> QUESTION_WINDOW_DAYS = List.of(7, 30, 90);
 
     private static final Set<Integer> FINALIZED_STATUS_IDS = Set.of(
             PracticeAttemptStatusesEnum.COMPLETED.getId(),
@@ -36,6 +40,7 @@ public class GetDashboardSummaryUseCase {
     );
 
     private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
+    private final StudentAnswerRepository studentAnswerRepository;
     private final PracticeAttemptEntitlementService entitlement;
 
     @Transactional(readOnly = true)
@@ -66,6 +71,31 @@ public class GetDashboardSummaryUseCase {
                 .activityLast30Days(activityLast30Days(attempts))
                 .currentInProgress(currentInProgress(attempts))
                 .lastFailed(lastFailed(finalized))
+                .questionActivity(questionActivity(studentAnswerRepository.countQuestionsPerAttempt(studentId)))
+                .build();
+    }
+
+    private GetDashboardSummaryResponse.QuestionActivity questionActivity(List<AttemptQuestionCount> perAttempt) {
+        LocalDateTime now = LocalDateTime.now();
+
+        List<GetDashboardSummaryResponse.QuestionWindow> windows = new ArrayList<>(QUESTION_WINDOW_DAYS.stream()
+                .map(days -> questionWindow(days, perAttempt.stream()
+                        .filter(count -> !count.getEndTime().isBefore(now.minusDays(days)))
+                        .toList()))
+                .toList());
+        windows.add(questionWindow(null, perAttempt));
+
+        return GetDashboardSummaryResponse.QuestionActivity.builder()
+                .since(perAttempt.stream().map(AttemptQuestionCount::getEndTime).min(Comparator.naturalOrder()).orElse(null))
+                .windows(windows)
+                .build();
+    }
+
+    private static GetDashboardSummaryResponse.QuestionWindow questionWindow(Integer days, List<AttemptQuestionCount> counts) {
+        return GetDashboardSummaryResponse.QuestionWindow.builder()
+                .days(days)
+                .answered(counts.stream().mapToLong(AttemptQuestionCount::getAnswered).sum())
+                .correct(counts.stream().mapToLong(AttemptQuestionCount::getCorrect).sum())
                 .build();
     }
 

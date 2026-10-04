@@ -1,8 +1,14 @@
 package br.com.naheroback.modules.reengagement.useCases.dispatchReengagementEmails;
 
 import br.com.naheroback.common.services.EmailService;
+import br.com.naheroback.common.utils.Constants;
 import br.com.naheroback.common.utils.SecureTokenGenerator;
+import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
+import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
+import br.com.naheroback.modules.practiceExams.entities.enums.PracticeAttemptStatusesEnum;
 import br.com.naheroback.modules.practiceExams.repositories.StudentPracticeAttemptRepository;
+import br.com.naheroback.modules.practiceExams.services.AttemptDomainBreakdownService;
+import br.com.naheroback.modules.practiceExams.services.AttemptDomainBreakdownService.DomainScore;
 import br.com.naheroback.modules.reengagement.entities.ReengagementDispatchRun;
 import br.com.naheroback.modules.reengagement.entities.ReengagementEmail;
 import br.com.naheroback.modules.reengagement.entities.enums.ReengagementEmailStatus;
@@ -23,9 +29,11 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,6 +47,8 @@ public class DispatchReengagementEmailsUseCase {
     private static final String FALLBACK_LANGUAGE = "en";
     private static final int LANGUAGE_LOOKBACK_ATTEMPTS = 10;
     private static final int FAILURE_REASON_MAX_LENGTH = 500;
+    private static final int RESULT_FOLLOWUP_MAX_AGE_DAYS = 7;
+    private static final String UTM_QUERY = "?utm_source=email&utm_medium=reengagement&utm_campaign=%s";
 
     private final ReengagementUserRepository reengagementUserRepository;
     private final ReengagementEmailRepository reengagementEmailRepository;
@@ -46,6 +56,7 @@ public class DispatchReengagementEmailsUseCase {
     private final StudentPracticeAttemptRepository studentPracticeAttemptRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final AttemptDomainBreakdownService attemptDomainBreakdownService;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -118,7 +129,7 @@ public class DispatchReengagementEmailsUseCase {
 
         for (ReengagementCandidate candidate : candidates) {
             List<ReengagementEmailHistory> history = historyByUser.getOrDefault(candidate.getUserId(), List.of());
-            Optional<ReengagementEmailType> step = nextStep(candidate, history, now);
+            Optional<PlannedEmail> step = nextStep(candidate, history, now);
 
             if (step.isEmpty()) {
                 skipped++;
@@ -131,7 +142,7 @@ public class DispatchReengagementEmailsUseCase {
                 sent++;
             } catch (RuntimeException e) {
                 failed++;
-                log.error("Could not send the {} re-engagement email to user {}", step.get(), candidate.getUserId(), e);
+                log.error("Could not send the {} re-engagement email to user {}", step.get().type(), candidate.getUserId(), e);
             }
         }
 
@@ -168,7 +179,7 @@ public class DispatchReengagementEmailsUseCase {
                 .collect(Collectors.groupingBy(ReengagementEmailHistory::getUserId));
     }
 
-    private Optional<ReengagementEmailType> nextStep(ReengagementCandidate candidate, List<ReengagementEmailHistory> history, LocalDateTime now) {
+    private Optional<PlannedEmail> nextStep(ReengagementCandidate candidate, List<ReengagementEmailHistory> history, LocalDateTime now) {
         List<ReengagementEmailHistory> campaign = history.stream()
                 .filter(email -> email.getSentAt().isAfter(candidate.getLastActivityAt()))
                 .toList();
@@ -185,15 +196,41 @@ public class DispatchReengagementEmailsUseCase {
         return ReengagementEmailType.sequence().stream()
                 .filter(type -> !delivered.contains(type))
                 .filter(type -> failures.getOrDefault(type, 0L) < maxAttemptsPerStep)
+                .map(type -> plan(type, candidate, now))
+                .flatMap(Optional::stream)
                 .findFirst()
-                .filter(type -> !now.isBefore(candidate.getLastActivityAt().plus(type.getDelayAfterLastActivity())));
+                .filter(planned -> !now.isBefore(candidate.getLastActivityAt().plus(planned.type().getDelayAfterLastActivity())));
     }
 
-    private void dispatch(ReengagementCandidate candidate, ReengagementEmailType type, LocalDateTime now) {
-        User user = userRepository.findById(candidate.getUserId()).orElseThrow();
-        Locale locale = resolveLocale(candidate.getUserId());
+    private Optional<PlannedEmail> plan(ReengagementEmailType type, ReengagementCandidate candidate, LocalDateTime now) {
+        if (type != ReengagementEmailType.RESULT_FOLLOWUP) return Optional.of(new PlannedEmail(type, null));
 
-        String actionLink = "%s/%s%s".formatted(frontendUrl, locale.getLanguage(), type.getLandingPath());
+        return resultFollowup(candidate, now).map(followup -> new PlannedEmail(type, followup));
+    }
+
+    private Optional<ResultFollowup> resultFollowup(ReengagementCandidate candidate, LocalDateTime now) {
+        LocalDateTime windowStart = now.minusDays(RESULT_FOLLOWUP_MAX_AGE_DAYS);
+
+        if (candidate.getLastActivityAt().isBefore(windowStart)) return Optional.empty();
+
+        return studentPracticeAttemptRepository.findLatestForStudent(candidate.getUserId(), PageRequest.of(0, 1)).stream()
+                .findFirst()
+                .filter(attempt -> Objects.equals(attempt.getAttemptStatus().getId(), PracticeAttemptStatusesEnum.COMPLETED.getId()))
+                .filter(attempt -> attempt.getScore() != null)
+                .filter(attempt -> attempt.getStartTime() != null && !attempt.getStartTime().isBefore(windowStart))
+                .flatMap(attempt -> AttemptDomainBreakdownService.weakest(attemptDomainBreakdownService.breakdown(attempt))
+                        .map(weakest -> new ResultFollowup(attempt, weakest)));
+    }
+
+    private void dispatch(ReengagementCandidate candidate, PlannedEmail planned, LocalDateTime now) {
+        User user = userRepository.findById(candidate.getUserId()).orElseThrow();
+        ReengagementEmailType type = planned.type();
+        ResultFollowup followup = planned.followup();
+        Locale locale = followup == null
+                ? resolveLocale(candidate.getUserId())
+                : supportedLanguage(followup.attempt().getLanguage())
+                        .map(Locale::forLanguageTag)
+                        .orElseGet(() -> resolveLocale(candidate.getUserId()));
 
         ReengagementEmail dispatched = new ReengagementEmail();
         dispatched.setUser(user);
@@ -204,13 +241,40 @@ public class DispatchReengagementEmailsUseCase {
         reengagementEmailRepository.save(dispatched);
 
         try {
-            emailService.sendReengagementEmail(user.getEmail(), user.getName(), type.messagePrefix(), actionLink, locale);
+            if (followup == null) {
+                emailService.sendReengagementEmail(user.getEmail(), user.getName(), type.messagePrefix(), landingLink(type, locale), locale);
+                return;
+            }
+
+            emailService.sendReengagementEmail(user.getEmail(), user.getName(), type.messagePrefix(), locale, resultFollowupModel(type, followup, locale));
         } catch (RuntimeException e) {
             dispatched.setStatus(ReengagementEmailStatus.FAILED);
             dispatched.setFailureReason(failureReason(e));
             reengagementEmailRepository.save(dispatched);
             throw e;
         }
+    }
+
+    private String landingLink(ReengagementEmailType type, Locale locale) {
+        return "%s/%s%s%s".formatted(frontendUrl, locale.getLanguage(), type.getLandingPath(), UTM_QUERY.formatted(type.getSlug()));
+    }
+
+    private Map<String, Object> resultFollowupModel(ReengagementEmailType type, ResultFollowup followup, Locale locale) {
+        StudentPracticeAttempt attempt = followup.attempt();
+        PracticeExam practiceExam = attempt.getPracticeExam();
+
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("examTitle", practiceExam.getTitle());
+        model.put("score", attempt.getScore());
+        model.put("total", practiceExam.getNumberOfQuestions() != null
+                ? practiceExam.getNumberOfQuestions()
+                : Constants.MAX_EXAM_QUESTIONS);
+        model.put("weakestDomain", followup.weakest().domain());
+        model.put("weakestCorrect", followup.weakest().correct());
+        model.put("weakestTotal", followup.weakest().total());
+        model.put("actionLink", "%s/%s%s/%s%s".formatted(frontendUrl, locale.getLanguage(), type.getLandingPath(),
+                practiceExam.getSlug(), UTM_QUERY.formatted(type.getSlug())));
+        return model;
     }
 
     private String failureReason(RuntimeException e) {
@@ -245,4 +309,8 @@ public class DispatchReengagementEmailsUseCase {
 
         return SUPPORTED_LANGUAGES.contains(tag) ? Optional.of(tag) : Optional.empty();
     }
+
+    private record PlannedEmail(ReengagementEmailType type, ResultFollowup followup) {}
+
+    private record ResultFollowup(StudentPracticeAttempt attempt, DomainScore weakest) {}
 }
