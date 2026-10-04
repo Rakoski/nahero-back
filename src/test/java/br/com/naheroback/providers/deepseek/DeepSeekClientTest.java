@@ -108,6 +108,16 @@ class DeepSeekClientTest {
     }
 
     @Test
+    @DisplayName("Should fail when the summary is longer than a phone-sized sentence")
+    void shouldFailOnALongSummary() throws Exception {
+        Map<String, Object> plan = objectMapper.readValue(VALID_PLAN, Map.class);
+        plan.put("summary", "You answered several questions correctly. ".repeat(6));
+        replies.add(objectMapper.writeValueAsString(plan));
+
+        assertThrows(IllegalStateException.class, () -> client.completeJson("system", "user", StudyPlan.class));
+    }
+
+    @Test
     @DisplayName("Should fail when a priority has a blank field")
     void shouldFailOnABlankPriorityField() {
         replies.add(VALID_PLAN.replace("\"why\": \"Missed IAM.\"", "\"why\": \"  \""));

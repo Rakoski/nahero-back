@@ -201,6 +201,32 @@ class ExplanationEntitlementIntegrationTest {
         assertTrue(answers.stream().noneMatch(answer -> answer.getAlternatives().isEmpty()));
     }
 
+    @Test
+    @DisplayName("Should withhold the per-domain breakdown from a free student")
+    void shouldWithholdTheDomainBreakdownFromAFreeStudent() {
+        jdbcTemplate.update("UPDATE questions SET domain = 'Cloud Concepts' WHERE practice_exam_id = ?", practiceExamId);
+
+        GetResultResponse result = getResult.execute(attemptId);
+
+        assertNull(result.getDomains());
+        assertNull(result.getWeakestDomain());
+        assertTrue(result.getQuestions().stream().allMatch(question -> question.domain() == null));
+        assertEquals(QUESTIONS_PER_EXAM, result.getCorrectAnswers());
+    }
+
+    @Test
+    @DisplayName("Should hand the per-domain breakdown to a subscriber")
+    void shouldHandTheDomainBreakdownToASubscriber() {
+        insertSubscription(OffsetDateTime.now().plusDays(30));
+        jdbcTemplate.update("UPDATE questions SET domain = 'Cloud Concepts' WHERE practice_exam_id = ?", practiceExamId);
+
+        GetResultResponse result = getResult.execute(attemptId);
+
+        assertNotNull(result.getDomains());
+        assertEquals(1, result.getDomains().size());
+        assertEquals("Cloud Concepts", result.getWeakestDomain());
+    }
+
     private List<ListAnsweredAnswersResponse> listAnsweredAnswers() {
         Page<ListAnsweredAnswersResponse> page = listAnswers.execute(
                 attemptId, new AnswerFilterDTO(null, null), PageRequest.of(0, 10));

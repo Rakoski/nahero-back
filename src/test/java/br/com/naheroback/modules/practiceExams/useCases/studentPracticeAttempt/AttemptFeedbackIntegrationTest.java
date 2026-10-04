@@ -248,18 +248,15 @@ class AttemptFeedbackIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should stop calling the model after three failed attempts")
-    void shouldStopCallingTheModelAfterThreeFailures() {
-        when(deepSeekClient.completeJson(anyString(), anyString(), eq(StudyPlan.class)))
-                .thenThrow(new IllegalStateException("DeepSeek call failed after 2 attempts"));
+    @DisplayName("Should not call the model again once a READY plan is stored")
+    void shouldNotRegenerateAReadyPlan() throws Exception {
+        givenTheModelAnswers(validPlan());
 
         generateNow();
         generateNow();
-        generateNow();
-        generateNow();
 
-        verify(deepSeekClient, times(3)).completeJson(anyString(), anyString(), eq(StudyPlan.class));
-        assertEquals(3, feedbackRow().get("attempts"));
+        verify(deepSeekClient, times(1)).completeJson(anyString(), anyString(), eq(StudyPlan.class));
+        assertEquals(1, feedbackRow().get("attempts"));
     }
 
     @Test
@@ -318,12 +315,12 @@ class AttemptFeedbackIntegrationTest {
         insertSubscription(OffsetDateTime.now().plusDays(30));
         givenTheModelAnswers(validPlan());
 
-        ResponseEntity<GetAttemptFeedbackResponse> first = controller.getFeedback(attemptId);
+        ResponseEntity<GetAttemptFeedbackResponse> first = controller.getFeedback(attemptId, true);
 
         assertEquals(HttpStatus.ACCEPTED, first.getStatusCode());
         waitFor(() -> "READY".equals(statusOrNull()));
 
-        ResponseEntity<GetAttemptFeedbackResponse> second = controller.getFeedback(attemptId);
+        ResponseEntity<GetAttemptFeedbackResponse> second = controller.getFeedback(attemptId, false);
 
         assertEquals(HttpStatus.OK, second.getStatusCode());
         assertNotNull(second.getBody());
@@ -332,28 +329,28 @@ class AttemptFeedbackIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should keep answering 202 pending and retry while a FAILED attempt has retries left")
-    void shouldRetryWhileAttemptsRemain() {
+    @DisplayName("Should retry a FAILED plan when the page is loaded again")
+    void shouldRetryAFailedPlanOnPageLoad() throws Exception {
         insertSubscription(OffsetDateTime.now().plusDays(30));
-        insertFeedback("FAILED", 1, null);
-        when(deepSeekClient.completeJson(anyString(), anyString(), eq(StudyPlan.class)))
-                .thenThrow(new IllegalStateException("DeepSeek call failed after 2 attempts"));
+        insertFeedback("FAILED", 3, null);
+        givenTheModelAnswers(validPlan());
 
-        ResponseEntity<GetAttemptFeedbackResponse> response = controller.getFeedback(attemptId);
+        ResponseEntity<GetAttemptFeedbackResponse> response = controller.getFeedback(attemptId, true);
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(GetAttemptFeedbackResponse.PENDING, response.getBody().status());
-        waitFor(() -> attempts() == 2);
+        waitFor(() -> "READY".equals(statusOrNull()));
+        assertEquals(4, feedbackRow().get("attempts"));
     }
 
     @Test
-    @DisplayName("Should answer failed, without calling the model, once the attempts are used up")
-    void shouldAnswerFailedOnceTheAttemptsAreUsedUp() {
+    @DisplayName("Should answer failed to polls after a failed try, without calling the model again")
+    void shouldAnswerFailedToPollsWithoutRetrying() {
         insertSubscription(OffsetDateTime.now().plusDays(30));
-        insertFeedback("FAILED", AttemptFeedbackService.MAX_ATTEMPTS, null);
+        insertFeedback("FAILED", 1, null);
 
-        ResponseEntity<GetAttemptFeedbackResponse> response = controller.getFeedback(attemptId);
+        ResponseEntity<GetAttemptFeedbackResponse> response = controller.getFeedback(attemptId, false);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -367,7 +364,7 @@ class AttemptFeedbackIntegrationTest {
     void shouldLockThePlanForAFreeStudent() {
         insertFeedback("READY", 1, VALID_PLAN);
 
-        ResponseEntity<GetAttemptFeedbackResponse> response = controller.getFeedback(attemptId);
+        ResponseEntity<GetAttemptFeedbackResponse> response = controller.getFeedback(attemptId, true);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         GetAttemptFeedbackResponse body = response.getBody();
@@ -385,7 +382,7 @@ class AttemptFeedbackIntegrationTest {
         insertSubscription(OffsetDateTime.now().plusDays(30));
         insertFeedback("READY", 1, VALID_PLAN);
 
-        ResponseEntity<GetAttemptFeedbackResponse> response = controller.getFeedback(attemptId);
+        ResponseEntity<GetAttemptFeedbackResponse> response = controller.getFeedback(attemptId, true);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         GetAttemptFeedbackResponse body = response.getBody();

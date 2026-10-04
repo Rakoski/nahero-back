@@ -71,6 +71,32 @@ public interface StudentPracticeAttemptRepository extends BaseRepository<Student
                                                     Pageable pageable);
 
     @Query("""
+        SELECT pe.id AS practiceExamId, pe.slug AS slug, pe.title AS title
+        FROM StudentPracticeAttempt a
+        JOIN a.practiceExam pe
+        WHERE a.enrollment.student.id = :studentId AND a.score IS NOT NULL
+        GROUP BY pe.id, pe.slug, pe.title
+        ORDER BY MAX(a.startTime) DESC
+    """)
+    List<FeedbackExamOption> findFeedbackExamOptions(@Param("studentId") Integer studentId);
+
+    @Query("""
+        SELECT a FROM StudentPracticeAttempt a
+        JOIN FETCH a.practiceExam pe
+        WHERE a.enrollment.student.id = :studentId AND pe.id = :practiceExamId AND a.score IS NOT NULL
+        ORDER BY a.startTime DESC, a.id DESC
+    """)
+    List<StudentPracticeAttempt> findRecentScored(@Param("studentId") Integer studentId,
+                                                  @Param("practiceExamId") Integer practiceExamId,
+                                                  Pageable pageable);
+
+    @Query("""
+        SELECT COUNT(a) > 0 FROM StudentPracticeAttempt a
+        WHERE a.enrollment.student.id = :studentId AND a.practiceExam.id = :practiceExamId AND a.score IS NOT NULL
+    """)
+    boolean existsScored(@Param("studentId") Integer studentId, @Param("practiceExamId") Integer practiceExamId);
+
+    @Query("""
         SELECT a.language FROM StudentPracticeAttempt a
         WHERE a.enrollment.student.id = :studentId AND a.language IS NOT NULL
         ORDER BY a.startTime DESC

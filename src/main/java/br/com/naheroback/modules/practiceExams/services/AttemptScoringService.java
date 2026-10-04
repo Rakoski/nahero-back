@@ -150,7 +150,7 @@ public class AttemptScoringService {
         }
     }
 
-    private boolean determineIfCorrect(List<Integer> selectedIds,
+    public static boolean determineIfCorrect(List<Integer> selectedIds,
                                        List<Integer> correctIds,
                                        QuestionTypeEnum questionType) {
         return switch (questionType) {

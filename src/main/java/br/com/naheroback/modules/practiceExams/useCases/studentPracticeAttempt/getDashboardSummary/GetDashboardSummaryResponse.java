@@ -32,6 +32,27 @@ public class GetDashboardSummaryResponse {
     private InProgressAttempt currentInProgress;
     private RecentAttempt lastFailed;
 
+    private QuestionActivity questionActivity;
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class QuestionActivity {
+        private LocalDateTime since;
+        private List<QuestionWindow> windows;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class QuestionWindow {
+        private Integer days;
+        private Long answered;
+        private Long correct;
+    }
+
     @Getter
     @Builder
     @NoArgsConstructor

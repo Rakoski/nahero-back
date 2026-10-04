@@ -43,8 +43,6 @@ public class AttemptFeedbackService {
     private static final int PRIORITY_COUNT = 3;
     private static final int FAILURE_REASON_MAX_LENGTH = 500;
 
-    public static final int MAX_ATTEMPTS = 3;
-
     private static final String SYSTEM_PROMPT = """
             You are a study coach for IT certification exams. The user message is a JSON object describing one \
             practice exam attempt: the exam title, the score, the number of correct answers per exam domain, the \
@@ -55,13 +53,16 @@ public class AttemptFeedbackService {
             this shape:
             {"summary": "...", "priorities": [{"domain": "...", "why": "...", "whatToStudy": "..."}], "plan": ["...", "..."]}
 
+            The student reads this on a phone in a few seconds. Be extremely brief: no filler, no repetition \
+            between fields, no full paragraphs.
+
             Rules:
-            - "summary": exactly 2 sentences about how the attempt went and where to focus.
+            - "summary": one sentence of at most 20 words saying where to focus first.
             - "priorities": exactly 3 items, weakest domain first (one item per domain if the input has fewer than \
-            3 domains). "domain" must be copied exactly from the input domain names, in English. "why" explains \
-            the weakness using the missed questions. "whatToStudy" names the concepts and services to review.
-            - "plan": 5 to 7 concrete study topics, in the order the student should study them, each one short \
-            sentence.
+            3 domains). "domain" must be copied exactly from the input domain names, in English. "why": one short \
+            clause of at most 12 words, based on the missed questions. "whatToStudy": 3 or 4 topic or service \
+            names separated by commas, not a sentence.
+            - "plan": 3 to 5 steps in the order to study them, each at most 8 words, starting with a verb.
             - Use numbers only by copying them from the input. Never calculate, estimate or invent numbers, \
             percentages or statistics.
             - Never include links, URLs, course names, book titles, websites or training providers.
@@ -87,13 +88,21 @@ public class AttemptFeedbackService {
 
     public record AttemptStats(String exam, String language, Integer correct, Integer total, List<DomainScore> domains, List<MissedQuestion> missedQuestions, List<PreviousScore> previousScores) {}
 
+    public boolean claim(Integer attemptId) {
+        return inFlight.add(attemptId);
+    }
+
+    public boolean isGenerating(Integer attemptId) {
+        return inFlight.contains(attemptId);
+    }
+
     @Async
     public void generate(Integer attemptId) {
-        if (!inFlight.add(attemptId)) return;
+        inFlight.add(attemptId);
 
         try {
             Optional<AttemptFeedback> existing = attemptFeedbackRepository.findByAttemptId(attemptId);
-            if (existing.isPresent() && !canRetry(existing.get())) return;
+            if (existing.isPresent() && existing.get().getStatus() == AttemptFeedbackStatus.READY) return;
 
             Optional<StudentPracticeAttempt> attempt = studentPracticeAttemptRepository.findByIdWithDetails(attemptId);
             if (attempt.isEmpty() || !isFinished(attempt.get())) return;
@@ -117,14 +126,6 @@ public class AttemptFeedbackService {
         }
     }
 
-    public static boolean isExhausted(AttemptFeedback feedback) {
-        return feedback.getStatus() == AttemptFeedbackStatus.FAILED && feedback.getAttempts() >= MAX_ATTEMPTS;
-    }
-
-    private static boolean canRetry(AttemptFeedback feedback) {
-        return feedback.getStatus() == AttemptFeedbackStatus.FAILED && feedback.getAttempts() < MAX_ATTEMPTS;
-    }
-
     private static boolean isFinished(StudentPracticeAttempt attempt) {
         return attempt.getScore() != null
                 && !attempt.getAttemptStatus().getId().equals(PracticeAttemptStatusesEnum.IN_PROGRESS.getId());
@@ -142,7 +143,6 @@ public class AttemptFeedbackService {
 
     private void writePlan(AttemptFeedback feedback, AttemptStats stats) throws JsonProcessingException {
         if (stats.domains().isEmpty()) {
-            feedback.setAttempts(MAX_ATTEMPTS);
             throw new IllegalStateException("Attempt has no answered questions with a domain");
         }
 
@@ -163,8 +163,8 @@ public class AttemptFeedbackService {
         feedback.setStatus(AttemptFeedbackStatus.FAILED);
         feedback.setContent(null);
         feedback.setFailureReason(failureReason(e));
-        log.warn("Study plan for attempt {} failed on attempt {}/{}: {}",
-                feedback.getAttemptId(), feedback.getAttempts(), MAX_ATTEMPTS, feedback.getFailureReason());
+        log.warn("Study plan for attempt {} failed on try {}: {}",
+                feedback.getAttemptId(), feedback.getAttempts(), feedback.getFailureReason());
     }
 
     private AttemptStats buildStats(StudentPracticeAttempt attempt) {

@@ -110,6 +110,20 @@ class AttemptDomainBreakdownServiceTest {
         verifyNoInteractions(questionRepository);
     }
 
+    @Test
+    @DisplayName("Should sum the breakdowns of several attempts per domain and sort weakest first")
+    void shouldCombineAttempts() {
+        List<DomainScore> combined = AttemptDomainBreakdownService.combine(List.of(
+                List.of(new DomainScore("Security and Compliance", 3, 12), new DomainScore("Cloud Concepts", 9, 10)),
+                List.of(new DomainScore("Cloud Concepts", 2, 10), new DomainScore("Security and Compliance", 8, 12)),
+                List.of(new DomainScore("Billing, Pricing, and Support", 1, 6))));
+
+        assertEquals(List.of(
+                new DomainScore("Billing, Pricing, and Support", 1, 6),
+                new DomainScore("Security and Compliance", 11, 24),
+                new DomainScore("Cloud Concepts", 11, 20)), combined);
+    }
+
     private StudentPracticeAttempt attempt(int id) {
         StudentPracticeAttempt attempt = new StudentPracticeAttempt();
         attempt.setId(id);

@@ -24,11 +24,21 @@ public class PracticeAttemptEntitlementService {
         throw new PaymentRequiredException("payment.history_required");
     }
 
+    public void ensureCanSeeFeedback() {
+        if (access.isPremium()) return;
+
+        throw new PaymentRequiredException("payment.feedback_required");
+    }
+
+    public boolean canSeeFeedback() {
+        return access.isPremium();
+    }
+
     public boolean canSeeExplanations() {
         return access.isPremium();
     }
 
-    public boolean canSeeStudyPlan() {
+    public boolean canSeeDomainBreakdown() {
         return access.isPremium();
     }
 }

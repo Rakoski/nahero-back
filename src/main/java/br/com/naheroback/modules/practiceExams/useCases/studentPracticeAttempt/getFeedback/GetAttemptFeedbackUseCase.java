@@ -31,10 +31,10 @@ public class GetAttemptFeedbackUseCase {
     private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
-    public GetAttemptFeedbackResponse execute(Integer attemptId) {
+    public GetAttemptFeedbackResponse execute(Integer attemptId, boolean retry) {
         StudentPracticeAttempt attempt = attemptAccess.loadOwnedAttempt(attemptId);
 
-        if (!entitlement.canSeeStudyPlan()) {
+        if (!entitlement.canSeeFeedback()) {
             return GetAttemptFeedbackResponse.locked(
                     AttemptDomainBreakdownService.weakest(domainBreakdownService.breakdown(attempt))
                             .map(DomainScore::domain)
@@ -46,13 +46,17 @@ public class GetAttemptFeedbackUseCase {
             return GetAttemptFeedbackResponse.ready(parse(stored.get().getContent()));
         }
 
-        if (stored.isPresent() && AttemptFeedbackService.isExhausted(stored.get())) return GetAttemptFeedbackResponse.failed();
+        boolean lastTryFailed = stored.isPresent();
+        boolean finished = !Objects.equals(attempt.getAttemptStatus().getId(), PracticeAttemptStatusesEnum.IN_PROGRESS.getId());
 
-        if (!Objects.equals(attempt.getAttemptStatus().getId(), PracticeAttemptStatusesEnum.IN_PROGRESS.getId())) {
+        if (finished && (!lastTryFailed || retry) && attemptFeedbackService.claim(attemptId)) {
             attemptFeedbackService.generate(attemptId);
+            return GetAttemptFeedbackResponse.pending();
         }
 
-        return GetAttemptFeedbackResponse.pending();
+        if (attemptFeedbackService.isGenerating(attemptId)) return GetAttemptFeedbackResponse.pending();
+
+        return lastTryFailed ? GetAttemptFeedbackResponse.failed() : GetAttemptFeedbackResponse.pending();
     }
 
     private StudyPlan parse(String content) {

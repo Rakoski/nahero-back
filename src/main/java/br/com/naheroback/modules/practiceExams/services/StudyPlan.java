@@ -8,9 +8,13 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record StudyPlan(
-        @NotBlank String summary,
+        @NotBlank @Size(max = 160) String summary,
         @NotNull @Size(min = 1, max = 3) List<@Valid @NotNull Priority> priorities,
-        @NotNull @Size(min = 5, max = 7) List<@NotBlank String> plan
+        @NotNull @Size(min = 3, max = 5) List<@NotBlank @Size(max = 70) String> plan
 ) {
-    public record Priority(@NotBlank String domain, @NotBlank String why, @NotBlank String whatToStudy) {}
+    public record Priority(
+            @NotBlank String domain,
+            @NotBlank @Size(max = 110) String why,
+            @NotBlank @Size(max = 90) String whatToStudy
+    ) {}
 }

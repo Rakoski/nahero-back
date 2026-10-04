@@ -100,8 +100,9 @@ public class StudentPracticeAttemptController {
     }
 
     @GetMapping("/{attemptId}/feedback")
-    public ResponseEntity<GetAttemptFeedbackResponse> getFeedback(@PathVariable Integer attemptId) {
-        GetAttemptFeedbackResponse feedback = getAttemptFeedbackUseCase.execute(attemptId);
+    public ResponseEntity<GetAttemptFeedbackResponse> getFeedback(@PathVariable Integer attemptId,
+                                                                  @RequestParam(defaultValue = "false") boolean retry) {
+        GetAttemptFeedbackResponse feedback = getAttemptFeedbackUseCase.execute(attemptId, retry);
         return ResponseEntity.status(feedback.isPending() ? HttpStatus.ACCEPTED : HttpStatus.OK).body(feedback);
     }
 

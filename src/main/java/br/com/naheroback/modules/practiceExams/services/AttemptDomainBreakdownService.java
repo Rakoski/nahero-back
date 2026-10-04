@@ -69,6 +69,20 @@ public class AttemptDomainBreakdownService {
                 .toList();
     }
 
+    public static List<DomainScore> combine(List<List<DomainScore>> breakdowns) {
+        Map<String, int[]> tally = new LinkedHashMap<>();
+        breakdowns.stream().flatMap(List::stream).forEach(score -> {
+            int[] counts = tally.computeIfAbsent(score.domain(), key -> new int[2]);
+            counts[0] += score.correct();
+            counts[1] += score.total();
+        });
+
+        return tally.entrySet().stream()
+                .map(entry -> new DomainScore(entry.getKey(), entry.getValue()[0], entry.getValue()[1]))
+                .sorted(WEAKEST_FIRST)
+                .toList();
+    }
+
     public static Optional<DomainScore> weakest(List<DomainScore> breakdown) {
         return breakdown.stream().findFirst();
     }
