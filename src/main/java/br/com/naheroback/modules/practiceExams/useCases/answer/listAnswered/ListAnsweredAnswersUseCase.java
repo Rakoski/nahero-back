@@ -1,5 +1,6 @@
 package br.com.naheroback.modules.practiceExams.useCases.answer.listAnswered;
 
+import br.com.naheroback.common.utils.ShuffleUtils;
 import br.com.naheroback.modules.practiceExams.entities.Alternative;
 import br.com.naheroback.modules.practiceExams.entities.Question;
 import br.com.naheroback.modules.practiceExams.entities.StudentAnswer;
@@ -54,7 +55,7 @@ public class ListAnsweredAnswersUseCase {
         Map<Integer, List<Alternative>> alternativesMap = questionIds.stream()
                 .collect(Collectors.toMap(
                         qId -> qId,
-                        alternativeRepository::findAllByQuestionId
+                        qId -> ShuffleUtils.shuffleDifferentOrder(alternativeRepository.findAllByQuestionId(qId))
                 ));
 
         return answersPage.map(answer -> {

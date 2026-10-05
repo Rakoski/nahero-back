@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.practiceExams.useCases.practiceExam.getSampleQuestions;
 
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
+import br.com.naheroback.common.utils.ShuffleUtils;
 import br.com.naheroback.modules.practiceExams.entities.Alternative;
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.practiceExams.entities.Question;
@@ -54,7 +55,7 @@ public class GetSampleQuestionsUseCase {
     }
 
     private GetSampleQuestionsResponse toResponse(Question question, List<Alternative> alternatives) {
-        List<GetSampleQuestionsResponse.GetSampleQuestionsAlternative> mappedAlternatives = alternatives.stream()
+        List<GetSampleQuestionsResponse.GetSampleQuestionsAlternative> mappedAlternatives = ShuffleUtils.shuffleDifferentOrder(alternatives).stream()
                 .map(alternative -> new GetSampleQuestionsResponse.GetSampleQuestionsAlternative(
                         alternative.getId(),
                         alternative.getContent(),

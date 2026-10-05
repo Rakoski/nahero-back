@@ -202,14 +202,15 @@ class ExplanationEntitlementIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should withhold the per-domain breakdown from a free student")
-    void shouldWithholdTheDomainBreakdownFromAFreeStudent() {
+    @DisplayName("Should hand the per-domain scores to a free student but withhold the per-question domains")
+    void shouldHandTheDomainScoresToAFreeStudent() {
         jdbcTemplate.update("UPDATE questions SET domain = 'Cloud Concepts' WHERE practice_exam_id = ?", practiceExamId);
 
         GetResultResponse result = getResult.execute(attemptId);
 
-        assertNull(result.getDomains());
-        assertNull(result.getWeakestDomain());
+        assertNotNull(result.getDomains());
+        assertEquals(1, result.getDomains().size());
+        assertEquals("Cloud Concepts", result.getWeakestDomain());
         assertTrue(result.getQuestions().stream().allMatch(question -> question.domain() == null));
         assertEquals(QUESTIONS_PER_EXAM, result.getCorrectAnswers());
     }

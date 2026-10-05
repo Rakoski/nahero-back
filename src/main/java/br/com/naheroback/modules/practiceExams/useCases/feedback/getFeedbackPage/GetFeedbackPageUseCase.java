@@ -2,6 +2,7 @@ package br.com.naheroback.modules.practiceExams.useCases.feedback.getFeedbackPag
 
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
 import br.com.naheroback.common.utils.Constants;
+import br.com.naheroback.common.utils.ShuffleUtils;
 import br.com.naheroback.modules.auth.services.AuthService;
 import br.com.naheroback.modules.practiceExams.entities.Alternative;
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
@@ -127,7 +128,8 @@ public class GetFeedbackPageUseCase {
                         QuestionTypeEnum.fromId(question.getQuestionType().getId()).name(),
                         question.getContent(),
                         question.getImageUrl(),
-                        alternativesByQuestionId.getOrDefault(question.getId(), List.of())))
+                        ShuffleUtils.shuffleDifferentOrder(
+                                alternativesByQuestionId.getOrDefault(question.getId(), List.of()))))
                 .toList();
     }
 

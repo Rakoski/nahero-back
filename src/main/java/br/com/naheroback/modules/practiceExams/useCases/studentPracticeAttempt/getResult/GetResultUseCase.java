@@ -29,8 +29,6 @@ public class GetResultUseCase {
         GetResultResponse response = GetResultResponse.toPresentation(attempt, answers, domainBreakdownService.domainsOf(answers));
 
         if (!entitlement.canSeeDomainBreakdown()) {
-            response.setDomains(null);
-            response.setWeakestDomain(null);
             response.setQuestions(response.getQuestions().stream()
                     .map(question -> new GetResultResponse.QuestionResult(question.questionId(), null, question.correct()))
                     .toList());
