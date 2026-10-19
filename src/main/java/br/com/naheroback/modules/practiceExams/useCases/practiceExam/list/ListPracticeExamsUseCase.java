@@ -32,7 +32,7 @@ public class ListPracticeExamsUseCase {
         Pageable sortedPageable = PageRequest.of(pagination.getPageNumber(), pagination.getPageSize(),
                 Sort.by(Sort.Order.asc("timeLimit"), Sort.Order.asc("id")));
 
-        BooleanBuilder builder = new BooleanBuilder();
+        BooleanBuilder builder = new BooleanBuilder(QPracticeExam.practiceExam.isActive.isTrue());
         if (predicate != null) builder.and(predicate);
 
         addRequestFilters(builder, request);

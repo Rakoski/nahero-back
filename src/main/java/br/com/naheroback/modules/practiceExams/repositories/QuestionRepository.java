@@ -4,10 +4,13 @@ import br.com.naheroback.common.repositories.BaseRepository;
 import br.com.naheroback.modules.practiceExams.entities.Question;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface QuestionRepository extends BaseRepository<Question, Integer> {
     int findVersionByBaseQuestionId(int baseQuestionId);
@@ -15,7 +18,7 @@ public interface QuestionRepository extends BaseRepository<Question, Integer> {
     Integer countAllByPracticeExamId(int practiceExamId);
     Page<Question> findAllByPracticeExamId(Integer practiceExamId, Pageable pageable);
 
-    @Query("SELECT q FROM Question q WHERE q.id IN :ids")
+    @Query("SELECT q FROM Question q LEFT JOIN FETCH q.domain WHERE q.id IN :ids")
     List<Question> findAllByIdIn(@Param("ids") List<Integer> ids);
 
     @Query("SELECT q FROM Question q JOIN FETCH q.practiceExam WHERE q.id IN :ids")
@@ -24,6 +27,7 @@ public interface QuestionRepository extends BaseRepository<Question, Integer> {
     @Query("""
             SELECT q FROM Question q
             JOIN FETCH q.practiceExam pe
+            LEFT JOIN FETCH q.domain
             WHERE pe.slug = :slug
             ORDER BY q.id ASC
             """)
@@ -37,8 +41,9 @@ public interface QuestionRepository extends BaseRepository<Question, Integer> {
 
     @Query(value = """
             SELECT q.id FROM questions q
+            JOIN domains d ON d.id = q.domain_id
             WHERE q.practice_exam_id = :practiceExamId
-              AND q.domain = :domain
+              AND d.name = :domain
               AND q.language = :language
               AND q.deleted_at IS NULL
               AND COALESCE(q.is_active, true) = true
@@ -75,4 +80,32 @@ public interface QuestionRepository extends BaseRepository<Question, Integer> {
     List<Question> findSampleQuestions(@Param("practiceExamId") Integer practiceExamId,
                                        @Param("language") String language,
                                        Pageable pageable);
+
+    @EntityGraph(attributePaths = {"domain", "questionType"})
+    Page<Question> findByPracticeExamIdOrderByIdDesc(Integer practiceExamId, Pageable pageable);
+
+    Optional<Question> findByIdAndPracticeExamId(Integer id, Integer practiceExamId);
+
+    boolean existsByPracticeExamIdAndDomainId(Integer practiceExamId, Integer domainId);
+
+    @Query("""
+            SELECT q.practiceExam.id, COUNT(q) FROM Question q
+            WHERE q.practiceExam.id IN :practiceExamIds
+            GROUP BY q.practiceExam.id
+            """)
+    List<Object[]> countByPracticeExamIds(@Param("practiceExamIds") Collection<Integer> practiceExamIds);
+
+    @Query("""
+            SELECT q.language, COUNT(q) FROM Question q
+            WHERE q.practiceExam.id = :practiceExamId
+            GROUP BY q.language
+            """)
+    List<Object[]> countByLanguageForPracticeExam(@Param("practiceExamId") Integer practiceExamId);
+
+    @Query("""
+            SELECT q.domain.id, COUNT(q) FROM Question q
+            WHERE q.practiceExam.id = :practiceExamId AND q.domain IS NOT NULL
+            GROUP BY q.domain.id
+            """)
+    List<Object[]> countByDomainForPracticeExam(@Param("practiceExamId") Integer practiceExamId);
 }

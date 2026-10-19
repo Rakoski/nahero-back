@@ -5,6 +5,7 @@ import br.com.naheroback.modules.practiceExams.entities.Alternative;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface AlternativeRepository extends BaseRepository<Alternative, Integer> {
@@ -18,4 +19,12 @@ public interface AlternativeRepository extends BaseRepository<Alternative, Integ
             ORDER BY a.id ASC
             """)
     List<Alternative> findAllActiveByQuestionIdIn(@Param("questionIds") List<Integer> questionIds);
+
+    @Query("""
+            SELECT a.question.id, COUNT(a), SUM(CASE WHEN a.isCorrect = true THEN 1 ELSE 0 END)
+            FROM Alternative a
+            WHERE a.question.id IN :questionIds
+            GROUP BY a.question.id
+            """)
+    List<Object[]> countByQuestionIds(@Param("questionIds") Collection<Integer> questionIds);
 }

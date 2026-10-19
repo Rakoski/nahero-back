@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.practiceExams.useCases.answer;
 
 import br.com.naheroback.modules.auth.entities.AuthenticatedUser;
+import br.com.naheroback.modules.practiceExams.DomainFixtures;
 import br.com.naheroback.modules.practiceExams.useCases.answer.listAnswered.AnswerFilterDTO;
 import br.com.naheroback.modules.practiceExams.useCases.answer.listAnswered.ListAnsweredAnswersResponse;
 import br.com.naheroback.modules.practiceExams.useCases.answer.listAnswered.ListAnsweredAnswersUseCase;
@@ -154,6 +155,7 @@ class ExplanationEntitlementIntegrationTest {
                 "DELETE FROM alternatives WHERE question_id IN (SELECT id FROM questions WHERE practice_exam_id = ?)",
                 practiceExamId);
         jdbcTemplate.update("DELETE FROM questions WHERE practice_exam_id = ?", practiceExamId);
+        DomainFixtures.unlinkAll(jdbcTemplate, practiceExamId);
         jdbcTemplate.update("DELETE FROM practice_exams WHERE id = ?", practiceExamId);
         jdbcTemplate.update("DELETE FROM exams WHERE id = ?", examId);
         jdbcTemplate.update("DELETE FROM subscriptions WHERE user_id = ?", studentId);
@@ -204,7 +206,8 @@ class ExplanationEntitlementIntegrationTest {
     @Test
     @DisplayName("Should hand the per-domain scores to a free student but withhold the per-question domains")
     void shouldHandTheDomainScoresToAFreeStudent() {
-        jdbcTemplate.update("UPDATE questions SET domain = 'Cloud Concepts' WHERE practice_exam_id = ?", practiceExamId);
+        Integer domainId = DomainFixtures.link(jdbcTemplate, practiceExamId, "Cloud Concepts");
+        jdbcTemplate.update("UPDATE questions SET domain_id = ? WHERE practice_exam_id = ?", domainId, practiceExamId);
 
         GetResultResponse result = getResult.execute(attemptId);
 
@@ -219,7 +222,8 @@ class ExplanationEntitlementIntegrationTest {
     @DisplayName("Should hand the per-domain breakdown to a subscriber")
     void shouldHandTheDomainBreakdownToASubscriber() {
         insertSubscription(OffsetDateTime.now().plusDays(30));
-        jdbcTemplate.update("UPDATE questions SET domain = 'Cloud Concepts' WHERE practice_exam_id = ?", practiceExamId);
+        Integer domainId = DomainFixtures.link(jdbcTemplate, practiceExamId, "Cloud Concepts");
+        jdbcTemplate.update("UPDATE questions SET domain_id = ? WHERE practice_exam_id = ?", domainId, practiceExamId);
 
         GetResultResponse result = getResult.execute(attemptId);
 

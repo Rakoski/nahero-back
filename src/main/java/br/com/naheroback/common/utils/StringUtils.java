@@ -11,4 +11,13 @@ public class StringUtils {
                 .trim()
                 .replaceAll("\\s+", "-");
     }
+
+    public static String plainText(String html, int maxLength) {
+        if (html == null) return "";
+        String text = html.replaceAll("<[^>]+>", " ")
+                .replace("&nbsp;", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return text.length() > maxLength ? text.substring(0, maxLength) : text;
+    }
 }

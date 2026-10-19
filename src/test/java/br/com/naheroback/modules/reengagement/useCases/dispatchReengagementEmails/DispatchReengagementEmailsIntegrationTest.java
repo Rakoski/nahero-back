@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.reengagement.useCases.dispatchReengagementEmails;
 
 import br.com.naheroback.common.services.EmailService;
+import br.com.naheroback.modules.practiceExams.DomainFixtures;
 import br.com.naheroback.modules.reengagement.entities.enums.ReengagementEmailStatus;
 import br.com.naheroback.modules.reengagement.entities.enums.ReengagementEmailType;
 import br.com.naheroback.modules.user.entities.Role;
@@ -88,6 +89,7 @@ class DispatchReengagementEmailsIntegrationTest {
             jdbcTemplate.update("DELETE FROM student_practice_attempts WHERE practice_exam_id = ?", practiceExamId);
             jdbcTemplate.update("DELETE FROM enrollments WHERE student_id = ?", userId);
             jdbcTemplate.update("DELETE FROM questions WHERE practice_exam_id = ?", practiceExamId);
+            DomainFixtures.unlinkAll(jdbcTemplate, practiceExamId);
             jdbcTemplate.update("DELETE FROM practice_exams WHERE id = ?", practiceExamId);
             jdbcTemplate.update("DELETE FROM exams WHERE id = ?", examId);
         }
@@ -267,9 +269,9 @@ class DispatchReengagementEmailsIntegrationTest {
 
     private void insertAnswer(Integer attemptId, String domain, boolean correct) {
         Integer questionId = jdbcTemplate.queryForObject("""
-                INSERT INTO questions (practice_exam_id, question_type_id, content, points, version, is_active, language, domain)
+                INSERT INTO questions (practice_exam_id, question_type_id, content, points, version, is_active, language, domain_id)
                 VALUES (?, 3, 'Question', 1, 1, true, 'en', ?) RETURNING id
-                """, Integer.class, practiceExamId, domain);
+                """, Integer.class, practiceExamId, DomainFixtures.link(jdbcTemplate, practiceExamId, domain));
         jdbcTemplate.update("""
                 INSERT INTO student_answers (student_practice_attempt_id, question_id, question_version, is_correct)
                 VALUES (?, ?, 1, ?)

@@ -73,4 +73,24 @@ class RateLimitServiceTest {
 
         assertDoesNotThrow(() -> rateLimitService.consume(other, "someone@example.com"));
     }
+
+    @Test
+    @DisplayName("Should give a full budget back after a reset, without touching other policies")
+    void shouldRestoreBudgetAfterReset() {
+        RateLimitPolicy other = new RateLimitPolicy("other", 1, Duration.ofHours(1));
+        for (int attempt = 0; attempt < POLICY.limit(); attempt++) {
+            rateLimitService.consume(POLICY, "someone@example.com");
+        }
+        rateLimitService.consume(other, "someone@example.com");
+
+        rateLimitService.reset(POLICY, "  Someone@Example.com ");
+
+        assertDoesNotThrow(() -> {
+            for (int attempt = 0; attempt < POLICY.limit(); attempt++) {
+                rateLimitService.consume(POLICY, "someone@example.com");
+            }
+        });
+        assertThrows(TooManyRequestsException.class,
+                () -> rateLimitService.consume(other, "someone@example.com"));
+    }
 }

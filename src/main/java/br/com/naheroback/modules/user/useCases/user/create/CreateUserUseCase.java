@@ -2,12 +2,13 @@ package br.com.naheroback.modules.user.useCases.user.create;
 
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
+import br.com.naheroback.modules.emailOutbox.entities.enums.EmailOutboxType;
+import br.com.naheroback.modules.emailOutbox.services.EmailOutboxService;
 import br.com.naheroback.modules.user.entities.Role;
 import br.com.naheroback.modules.user.entities.User;
 import br.com.naheroback.modules.user.entities.enums.RolesEnum;
 import br.com.naheroback.modules.user.repositories.RoleRepository;
 import br.com.naheroback.modules.user.repositories.UserRepository;
-import br.com.naheroback.modules.user.services.EmailVerificationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,7 +21,7 @@ public class CreateUserUseCase {
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
     private final CreateUserResponse createUserResponse;
-    private final EmailVerificationService emailVerificationService;
+    private final EmailOutboxService emailOutboxService;
 
     @Transactional
     public CreateUserResponse execute(CreateUserRequest input) {
@@ -33,7 +34,7 @@ public class CreateUserUseCase {
 
         userRepository.save(user);
 
-        emailVerificationService.issueAndSendQuietly(user);
+        emailOutboxService.enqueue(user, EmailOutboxType.EMAIL_VERIFICATION);
 
         return createUserResponse.toPresentation(user);
     }

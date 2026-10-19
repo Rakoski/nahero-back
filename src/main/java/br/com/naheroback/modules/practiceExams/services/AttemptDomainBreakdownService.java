@@ -42,8 +42,8 @@ public class AttemptDomainBreakdownService {
         if (questionIds.isEmpty()) return Map.of();
 
         return questionRepository.findAllByIdIn(questionIds).stream()
-                .filter(question -> question.getDomain() != null && !question.getDomain().isBlank())
-                .collect(Collectors.toMap(Question::getId, Question::getDomain));
+                .filter(question -> question.getDomain() != null)
+                .collect(Collectors.toMap(Question::getId, Question::getDomainName));
     }
 
     public static List<DomainScore> breakdown(List<StudentAnswer> answers, Map<Integer, String> domainByQuestionId) {

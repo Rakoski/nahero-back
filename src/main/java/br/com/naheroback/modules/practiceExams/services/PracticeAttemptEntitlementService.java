@@ -30,6 +30,11 @@ public class PracticeAttemptEntitlementService {
         throw new PaymentRequiredException("payment.feedback_required");
     }
 
+    public void ensureCanUseQuestionBank() {
+        if (access.isPremium()) return;
+        throw new PaymentRequiredException("payment.question_bank_required");
+    }
+
     public boolean canSeeFeedback() {
         return access.isPremium();
     }

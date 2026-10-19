@@ -15,8 +15,11 @@ import br.com.naheroback.modules.user.repositories.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.MessageSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -62,6 +65,9 @@ class AnnouncementIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private MessageSource messageSource;
 
     @MockitoBean
     private EmailService emailService;
@@ -195,6 +201,18 @@ class AnnouncementIntegrationTest {
 
         assertThrows(AccessDeniedException.class, () -> sendAnnouncement.sendTest(CAMPAIGN,
                 new SendAnnouncementTestRequest(email, null)));
+    }
+
+    @ParameterizedTest
+    @EnumSource(AnnouncementCampaign.class)
+    @DisplayName("Should have the full copy of every campaign in every supported language")
+    void shouldHaveTheCopyOfEveryCampaign(AnnouncementCampaign campaign) {
+        for (Locale locale : List.of(Locale.forLanguageTag("pt"), Locale.ENGLISH)) {
+            for (String key : List.of("subject", "preheader", "greeting", "intro", "feature_1", "highlight", "cta")) {
+                String code = "%s.%s".formatted(campaign.messagePrefix(), key);
+                assertNotNull(messageSource.getMessage(code, null, null, locale), code + " in " + locale);
+            }
+        }
     }
 
     private Integer createUser(RolesEnum roleName, boolean confirmed, boolean optedOut) {

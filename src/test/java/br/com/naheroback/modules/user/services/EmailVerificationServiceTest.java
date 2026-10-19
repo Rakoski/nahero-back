@@ -15,13 +15,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EmailVerificationServiceTest {
+
+    private static final Locale ENGLISH = Locale.ENGLISH;
 
     @Mock
     private UserRepository userRepository;
@@ -47,11 +51,11 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("Should store the hashed token and email the raw one")
     void shouldStoreHashedTokenAndEmailRawToken() {
-        emailVerificationService.issueAndSend(mockUser);
+        emailVerificationService.issueAndSend(mockUser, ENGLISH);
 
         ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
         verify(emailService, times(1))
-                .sendEmailVerificationEmail(eq(mockUser.getEmail()), eq(mockUser.getName()), tokenCaptor.capture());
+                .sendEmailVerificationEmail(eq(mockUser.getEmail()), eq(mockUser.getName()), tokenCaptor.capture(), eq(ENGLISH));
 
         String emailedToken = tokenCaptor.getValue();
 
@@ -65,7 +69,7 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("Should set the token expiration in the future")
     void shouldSetTokenExpirationInTheFuture() {
-        emailVerificationService.issueAndSend(mockUser);
+        emailVerificationService.issueAndSend(mockUser, ENGLISH);
 
         assertNotNull(mockUser.getEmailVerificationTokenExpiresAt());
         assertTrue(mockUser.getEmailVerificationTokenExpiresAt().isAfter(LocalDateTime.now()));
@@ -74,39 +78,32 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("Should generate a different token on every issue")
     void shouldGenerateDifferentTokenOnEveryIssue() {
-        emailVerificationService.issueAndSend(mockUser);
+        emailVerificationService.issueAndSend(mockUser, ENGLISH);
         String firstToken = mockUser.getEmailVerificationToken();
 
-        emailVerificationService.issueAndSend(mockUser);
+        emailVerificationService.issueAndSend(mockUser, ENGLISH);
         String secondToken = mockUser.getEmailVerificationToken();
 
         assertNotEquals(firstToken, secondToken);
     }
 
     @Test
-    @DisplayName("Should propagate the failure when sending is explicit")
-    void shouldPropagateFailureWhenSendingIsExplicit() {
+    @DisplayName("Should propagate the failure and keep the previous token")
+    void shouldPropagateFailureAndKeepPreviousToken() {
+        mockUser.setEmailVerificationToken("previous-hash");
         doThrow(new IllegalStateException("smtp is down"))
-                .when(emailService).sendEmailVerificationEmail(anyString(), anyString(), anyString());
+                .when(emailService).sendEmailVerificationEmail(anyString(), anyString(), anyString(), any(Locale.class));
 
-        assertThrows(IllegalStateException.class, () -> emailVerificationService.issueAndSend(mockUser));
-    }
+        assertThrows(IllegalStateException.class, () -> emailVerificationService.issueAndSend(mockUser, ENGLISH));
 
-    @Test
-    @DisplayName("Should swallow the failure when sending quietly")
-    void shouldSwallowFailureWhenSendingQuietly() {
-        doThrow(new IllegalStateException("smtp is down"))
-                .when(emailService).sendEmailVerificationEmail(anyString(), anyString(), anyString());
-
-        assertDoesNotThrow(() -> emailVerificationService.issueAndSendQuietly(mockUser));
-
-        verify(userRepository, times(1)).save(mockUser);
+        assertEquals("previous-hash", mockUser.getEmailVerificationToken());
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     @DisplayName("Should not confirm the email when the token is issued")
     void shouldNotConfirmEmailWhenTokenIsIssued() {
-        emailVerificationService.issueAndSend(mockUser);
+        emailVerificationService.issueAndSend(mockUser, ENGLISH);
 
         assertNull(mockUser.getEmailConfirmedAt());
         assertFalse(mockUser.isEmailConfirmed());

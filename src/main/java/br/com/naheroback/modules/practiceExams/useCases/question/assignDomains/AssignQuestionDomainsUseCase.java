@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.practiceExams.useCases.question.assignDomains;
 
 import br.com.naheroback.common.exceptions.custom.BadRequestException;
+import br.com.naheroback.modules.practiceExams.entities.Domain;
 import br.com.naheroback.modules.practiceExams.entities.Question;
 import br.com.naheroback.modules.practiceExams.repositories.QuestionRepository;
 import br.com.naheroback.modules.practiceExams.services.ExamDomains;
@@ -51,8 +52,14 @@ public class AssignQuestionDomainsUseCase {
                     "Nothing was written. Unknown or deleted questionId: " + unknownIds);
         }
 
+        ExamDomains.Catalog catalog = examDomains.forPracticeExams(questionsById.values().stream()
+                .filter(question -> question.getPracticeExam() != null)
+                .map(question -> question.getPracticeExam().getId())
+                .distinct()
+                .toList());
+
         List<String> rejections = new ArrayList<>();
-        Map<Question, String> pending = new LinkedHashMap<>();
+        Map<Question, Domain> pending = new LinkedHashMap<>();
 
         for (AssignQuestionDomainsRequest request : requests) {
             Question question = questionsById.get(request.questionId());
@@ -62,12 +69,13 @@ public class AssignQuestionDomainsUseCase {
                 rejections.add(request.questionId() + ": not linked to a practice exam");
                 continue;
             }
-            if (!examDomains.hasPracticeExam(slug)) {
+            Integer practiceExamId = question.getPracticeExam().getId();
+            if (!catalog.hasPracticeExam(practiceExamId)) {
                 rejections.add(request.questionId() + ": no domain map for practice exam '" + slug + "'");
                 continue;
             }
 
-            Optional<String> canonical = examDomains.canonicalName(slug, request.domain());
+            Optional<Domain> canonical = catalog.canonical(practiceExamId, request.domain());
             if (canonical.isEmpty()) {
                 rejections.add(request.questionId() + ": '" + request.domain()
                         + "' is not a domain of '" + slug + "'");

@@ -30,7 +30,7 @@ public class GetSampleQuestionsUseCase {
 
     @Transactional(readOnly = true)
     public List<GetSampleQuestionsResponse> execute(String slug, Locale locale) {
-        PracticeExam practiceExam = practiceExamRepository.findBySlug(slug)
+        PracticeExam practiceExam = practiceExamRepository.findBySlugAndIsActiveTrue(slug)
                 .orElseThrow(() -> NotFoundException.with(PracticeExam.class, "slug", slug));
 
         String language = locale == null ? Locale.ENGLISH.getLanguage() : locale.getLanguage();

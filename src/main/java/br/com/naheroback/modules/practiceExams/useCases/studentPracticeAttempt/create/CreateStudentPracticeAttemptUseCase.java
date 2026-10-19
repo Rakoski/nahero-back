@@ -43,7 +43,7 @@ public class CreateStudentPracticeAttemptUseCase {
     @Secured("IS_STUDENT")
     public Integer execute(CreateStudentPracticeAttemptRequest request, Locale locale) {
         int practiceExamId = request.practiceExamId();
-        PracticeExam practiceExam = practiceExamRepository.findById(practiceExamId)
+        PracticeExam practiceExam = practiceExamRepository.findByIdAndIsActiveTrue(practiceExamId)
             .orElseThrow(() -> NotFoundException.with(PracticeExam.class, "id", practiceExamId));
 
         int examId = practiceExam.getExam().getId();

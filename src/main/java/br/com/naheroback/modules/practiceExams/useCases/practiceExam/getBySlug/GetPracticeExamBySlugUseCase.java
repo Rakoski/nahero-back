@@ -16,7 +16,7 @@ public class GetPracticeExamBySlugUseCase {
 
     @Transactional(readOnly = true)
     public GetPracticeExamBySlugResponse execute(String slug) {
-        PracticeExam practiceExam = practiceExamRepository.findBySlug(slug)
+        PracticeExam practiceExam = practiceExamRepository.findBySlugAndIsActiveTrue(slug)
                 .orElseThrow(() -> NotFoundException.with(PracticeExam.class, "slug", slug));
 
         return modelMapper.map(practiceExam, GetPracticeExamBySlugResponse.class);

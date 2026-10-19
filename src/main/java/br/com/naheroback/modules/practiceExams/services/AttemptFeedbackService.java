@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.practiceExams.services;
 
 import br.com.naheroback.common.utils.Constants;
+import br.com.naheroback.common.utils.StringUtils;
 import br.com.naheroback.modules.practiceExams.entities.AttemptFeedback;
 import br.com.naheroback.modules.practiceExams.entities.Question;
 import br.com.naheroback.modules.practiceExams.entities.StudentAnswer;
@@ -176,8 +177,8 @@ public class AttemptFeedbackService {
                         .collect(Collectors.toMap(Question::getId, Function.identity()));
 
         Map<Integer, String> domainByQuestionId = questionsById.values().stream()
-                .filter(question -> question.getDomain() != null && !question.getDomain().isBlank())
-                .collect(Collectors.toMap(Question::getId, Question::getDomain));
+                .filter(question -> question.getDomain() != null)
+                .collect(Collectors.toMap(Question::getId, Question::getDomainName));
 
         List<DomainScore> domains = AttemptDomainBreakdownService.breakdown(answers, domainByQuestionId);
         Map<String, Integer> weaknessRank = IntStream.range(0, domains.size()).boxed()
@@ -193,9 +194,10 @@ public class AttemptFeedbackService {
                 .filter(entry -> !entry.getValue())
                 .map(entry -> questionsById.get(entry.getKey()))
                 .filter(question -> question != null && domainByQuestionId.containsKey(question.getId()))
-                .sorted(Comparator.comparing(question -> weaknessRank.get(question.getDomain())))
+                .sorted(Comparator.comparing(question -> weaknessRank.get(question.getDomainName())))
                 .limit(MAX_MISSED_QUESTIONS)
-                .map(question -> new MissedQuestion(question.getDomain(), plainText(question.getContent())))
+                .map(question -> new MissedQuestion(
+                        question.getDomainName(), StringUtils.plainText(question.getContent(), MAX_QUESTION_LENGTH)))
                 .toList();
 
         int total = attempt.getPracticeExam().getNumberOfQuestions() != null
@@ -258,15 +260,6 @@ public class AttemptFeedbackService {
 
         String reason = "%s: %s".formatted(root.getClass().getSimpleName(), root.getMessage());
         return reason.length() > FAILURE_REASON_MAX_LENGTH ? reason.substring(0, FAILURE_REASON_MAX_LENGTH) : reason;
-    }
-
-    private String plainText(String content) {
-        if (content == null) return "";
-        String text = content.replaceAll("<[^>]+>", " ")
-                .replace("&nbsp;", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
-        return text.length() > MAX_QUESTION_LENGTH ? text.substring(0, MAX_QUESTION_LENGTH) : text;
     }
 
     private String sha256(String value) {

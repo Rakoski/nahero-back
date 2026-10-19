@@ -3,6 +3,7 @@ package br.com.naheroback.modules.practiceExams.entities;
 import br.com.naheroback.common.entities.BaseEntity;
 import br.com.naheroback.modules.user.entities.User;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,7 +25,9 @@ import org.hibernate.annotations.SQLRestriction;
     @Index(name = "idx_questions_is_active", columnList = "is_active"),
     @Index(name = "idx_questions_deleted_at", columnList = "deleted_at"),
     @Index(name = "idx_questions_version", columnList = "version"),
-    @Index(name = "idx_questions_practice_exam_domain", columnList = "practice_exam_id, domain")
+    @Index(name = "idx_questions_practice_exam_domain", columnList = "practice_exam_id, domain"),
+    @Index(name = "idx_questions_practice_exam_domain_id", columnList = "practice_exam_id, domain_id"),
+    @Index(name = "idx_questions_domain_id", columnList = "domain_id")
 })
 @SQLDelete(sql = "UPDATE questions SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
@@ -67,6 +70,20 @@ public class Question extends BaseEntity {
     @Column
     private String language;
 
-    @Column(length = 160)
-    private String domain;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "domain_id")
+    private Domain domain;
+
+    @Setter(AccessLevel.NONE)
+    @Column(name = "domain", length = 160)
+    private String legacyDomain;
+
+    public void setDomain(Domain domain) {
+        this.domain = domain;
+        this.legacyDomain = domain == null ? null : domain.getName();
+    }
+
+    public String getDomainName() {
+        return domain == null ? null : domain.getName();
+    }
 }

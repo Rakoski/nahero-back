@@ -1,6 +1,7 @@
 package br.com.naheroback.common.exceptions;
 
 import br.com.naheroback.common.exceptions.custom.BadRequestException;
+import br.com.naheroback.common.exceptions.custom.CaptchaRequiredException;
 import br.com.naheroback.common.exceptions.custom.ConflictException;
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.EmailNotVerifiedException;
@@ -198,6 +199,28 @@ public class GlobalExceptionHandler {
                 .build();
 
         log.warn("TooManyRequestsException - Path: {}", exception.getPath());
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(exception);
+    }
+
+    @ExceptionHandler(CaptchaRequiredException.class)
+    protected ResponseEntity<CustomException> captchaRequired(CaptchaRequiredException e, HttpServletRequest request) {
+        String resolved = messageSource.getMessage(
+                e.getMessageKey(),
+                null,
+                e.getMessageKey(),
+                LocaleContextHolder.getLocale()
+        );
+
+        var exception = CustomException.builder()
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .timestamp(Instant.now())
+                .error(resolved)
+                .errorCode(CaptchaRequiredException.ERROR_CODE)
+                .path(request.getRequestURI())
+                .build();
+
+        log.warn("CaptchaRequiredException - Path: {}", exception.getPath());
 
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(exception);
     }

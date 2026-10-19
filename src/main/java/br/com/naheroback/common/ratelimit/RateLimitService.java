@@ -24,10 +24,18 @@ public class RateLimitService {
             .build();
 
     public void consume(RateLimitPolicy policy, String key) {
-        String normalizedKey = "%s:%s".formatted(policy.name(), key.trim().toLowerCase(Locale.ROOT));
+        String normalizedKey = normalize(policy, key);
         RateLimiter limiter = limiters.get(normalizedKey, name -> RateLimiter.of(name, configFor(policy)));
 
         if (!limiter.acquirePermission()) throw new TooManyRequestsException();
+    }
+
+    public void reset(RateLimitPolicy policy, String key) {
+        limiters.invalidate(normalize(policy, key));
+    }
+
+    private String normalize(RateLimitPolicy policy, String key) {
+        return "%s:%s".formatted(policy.name(), key.trim().toLowerCase(Locale.ROOT));
     }
 
     private RateLimiterConfig configFor(RateLimitPolicy policy) {

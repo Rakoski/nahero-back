@@ -3,6 +3,7 @@ package br.com.naheroback.modules.practiceExams.useCases.feedback;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
 import br.com.naheroback.common.exceptions.custom.PaymentRequiredException;
 import br.com.naheroback.modules.auth.entities.AuthenticatedUser;
+import br.com.naheroback.modules.practiceExams.DomainFixtures;
 import br.com.naheroback.modules.practiceExams.controllers.FeedbackController;
 import br.com.naheroback.modules.practiceExams.controllers.StudentPracticeAttemptController;
 import br.com.naheroback.modules.practiceExams.services.AttemptDomainBreakdownService.DomainScore;
@@ -140,7 +141,10 @@ class FeedbackPageIntegrationTest {
             jdbcTemplate.update("DELETE FROM user_roles WHERE user_id = ?", id);
             jdbcTemplate.update("DELETE FROM users WHERE id = ?", id);
         }
-        practiceExamIds.forEach(id -> jdbcTemplate.update("DELETE FROM practice_exams WHERE id = ?", id));
+        practiceExamIds.forEach(id -> {
+            DomainFixtures.unlinkAll(jdbcTemplate, id);
+            jdbcTemplate.update("DELETE FROM practice_exams WHERE id = ?", id);
+        });
         examIds.forEach(id -> jdbcTemplate.update("DELETE FROM exams WHERE id = ?", id));
     }
 
@@ -298,9 +302,10 @@ class FeedbackPageIntegrationTest {
     private Integer insertQuestion(Integer practiceExamId, String domain, String content, String language, int typeId) {
         Integer questionId = jdbcTemplate.queryForObject("""
                 INSERT INTO questions (practice_exam_id, question_type_id, content, explanation, points, version,
-                                       is_active, language, domain)
+                                       is_active, language, domain_id)
                 VALUES (?, ?, ?, ?, 1, 1, true, ?, ?) RETURNING id
-                """, Integer.class, practiceExamId, typeId, content, "Because " + content, language, domain);
+                """, Integer.class, practiceExamId, typeId, content, "Because " + content, language,
+                DomainFixtures.link(jdbcTemplate, practiceExamId, domain));
         jdbcTemplate.update("""
                 INSERT INTO alternatives (question_id, content, is_correct, version, is_active)
                 VALUES (?, 'Right', true, 1, true), (?, 'Wrong', false, 1, true)

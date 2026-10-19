@@ -1,6 +1,7 @@
 package br.com.naheroback.modules.practiceExams.useCases.studentPracticeAttempt;
 
 import br.com.naheroback.modules.auth.entities.AuthenticatedUser;
+import br.com.naheroback.modules.practiceExams.DomainFixtures;
 import br.com.naheroback.modules.practiceExams.controllers.StudentPracticeAttemptController;
 import br.com.naheroback.modules.practiceExams.services.AttemptFeedbackService;
 import br.com.naheroback.modules.practiceExams.services.StudyPlan;
@@ -143,6 +144,7 @@ class AttemptFeedbackIntegrationTest {
         jdbcTemplate.update("DELETE FROM alternatives WHERE question_id IN (SELECT id FROM questions WHERE practice_exam_id = ?)",
                 practiceExamId);
         jdbcTemplate.update("DELETE FROM questions WHERE practice_exam_id = ?", practiceExamId);
+        DomainFixtures.unlinkAll(jdbcTemplate, practiceExamId);
         jdbcTemplate.update("DELETE FROM practice_exams WHERE id = ?", practiceExamId);
         jdbcTemplate.update("DELETE FROM exams WHERE id = ?", examId);
         jdbcTemplate.update("DELETE FROM subscriptions WHERE user_id = ?", studentId);
@@ -429,9 +431,10 @@ class AttemptFeedbackIntegrationTest {
 
     private void insertAnswer(String domain, String content, boolean correct) {
         Integer questionId = jdbcTemplate.queryForObject("""
-                INSERT INTO questions (practice_exam_id, question_type_id, content, points, version, is_active, language, domain)
+                INSERT INTO questions (practice_exam_id, question_type_id, content, points, version, is_active, language, domain_id)
                 VALUES (?, 3, ?, 1, 1, true, 'en', ?) RETURNING id
-                """, Integer.class, practiceExamId, "<p>" + content + "</p>", domain);
+                """, Integer.class, practiceExamId, "<p>" + content + "</p>",
+                DomainFixtures.link(jdbcTemplate, practiceExamId, domain));
         jdbcTemplate.update("""
                 INSERT INTO alternatives (question_id, content, is_correct, version, is_active)
                 VALUES (?, 'Option right', true, 1, true), (?, 'Option wrong', false, 1, true)

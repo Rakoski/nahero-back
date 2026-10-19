@@ -5,8 +5,8 @@ import br.com.naheroback.modules.practiceExams.useCases.question.assignDomains.A
 import br.com.naheroback.modules.practiceExams.useCases.question.assignDomains.AssignQuestionDomainsUseCase;
 import br.com.naheroback.modules.practiceExams.useCases.question.export.ExportQuestionsResponse;
 import br.com.naheroback.modules.practiceExams.useCases.question.export.ExportQuestionsUseCase;
+import br.com.naheroback.modules.practiceExams.useCases.question.listDomains.ListExamDomainsResponse;
 import br.com.naheroback.modules.practiceExams.useCases.question.listDomains.ListExamDomainsUseCase;
-import br.com.naheroback.modules.practiceExams.services.ExamDomains;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,7 +34,7 @@ public class AdminQuestionController {
     }
 
     @GetMapping("/domains")
-    public Map<String, List<ExamDomains.Domain>> listDomains() {
+    public Map<String, List<ListExamDomainsResponse>> listDomains() {
         return listExamDomainsUseCase.execute();
     }
 

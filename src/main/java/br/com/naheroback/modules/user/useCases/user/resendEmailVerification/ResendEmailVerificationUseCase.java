@@ -1,8 +1,9 @@
 package br.com.naheroback.modules.user.useCases.user.resendEmailVerification;
 
+import br.com.naheroback.modules.emailOutbox.entities.enums.EmailOutboxType;
+import br.com.naheroback.modules.emailOutbox.services.EmailOutboxService;
 import br.com.naheroback.modules.user.entities.User;
 import br.com.naheroback.modules.user.repositories.UserRepository;
-import br.com.naheroback.modules.user.services.EmailVerificationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Service;
 public class ResendEmailVerificationUseCase {
 
     private final UserRepository userRepository;
-    private final EmailVerificationService emailVerificationService;
+    private final EmailOutboxService emailOutboxService;
 
     @Transactional
     public void execute(ResendEmailVerificationRequest input) {
@@ -22,6 +23,6 @@ public class ResendEmailVerificationUseCase {
     }
 
     private void resend(User user) {
-        emailVerificationService.issueAndSend(user);
+        emailOutboxService.enqueue(user, EmailOutboxType.EMAIL_VERIFICATION);
     }
 }

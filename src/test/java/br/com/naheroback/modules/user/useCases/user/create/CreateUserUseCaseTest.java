@@ -2,12 +2,13 @@ package br.com.naheroback.modules.user.useCases.user.create;
 
 import br.com.naheroback.common.exceptions.custom.DuplicateException;
 import br.com.naheroback.common.exceptions.custom.NotFoundException;
+import br.com.naheroback.modules.emailOutbox.entities.enums.EmailOutboxType;
+import br.com.naheroback.modules.emailOutbox.services.EmailOutboxService;
 import br.com.naheroback.modules.user.entities.Role;
 import br.com.naheroback.modules.user.entities.User;
 import br.com.naheroback.modules.user.entities.enums.RolesEnum;
 import br.com.naheroback.modules.user.repositories.RoleRepository;
 import br.com.naheroback.modules.user.repositories.UserRepository;
-import br.com.naheroback.modules.user.services.EmailVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,7 @@ class CreateUserUseCaseTest {
     private CreateUserResponse createUserResponse;
 
     @Mock
-    private EmailVerificationService emailVerificationService;
+    private EmailOutboxService emailOutboxService;
 
     @InjectMocks
     private CreateUserUseCase createUserUseCase;
@@ -90,13 +91,13 @@ class CreateUserUseCaseTest {
         verify(passwordEncoder, times(1)).encode(validRequest.password());
         verify(roleRepository, times(1)).findByName(RolesEnum.IS_STUDENT.name());
         verify(userRepository, times(1)).save(any(User.class));
-        verify(emailVerificationService, times(1)).issueAndSendQuietly(any(User.class));
+        verify(emailOutboxService, times(1)).enqueue(any(User.class), eq(EmailOutboxType.EMAIL_VERIFICATION));
         verify(createUserResponse, times(1)).toPresentation(any(User.class));
     }
 
     @Test
-    @DisplayName("Should send the verification email to the created user")
-    void shouldSendVerificationEmailToCreatedUser() {
+    @DisplayName("Should queue the verification email for the created user")
+    void shouldQueueVerificationEmailForCreatedUser() {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(roleRepository.findByName(RolesEnum.IS_STUDENT.name())).thenReturn(Optional.of(studentRole));
@@ -105,7 +106,7 @@ class CreateUserUseCaseTest {
         createUserUseCase.execute(validRequest);
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(emailVerificationService, times(1)).issueAndSendQuietly(userCaptor.capture());
+        verify(emailOutboxService, times(1)).enqueue(userCaptor.capture(), eq(EmailOutboxType.EMAIL_VERIFICATION));
 
         assertEquals(validRequest.email(), userCaptor.getValue().getEmail());
         assertNull(userCaptor.getValue().getEmailConfirmedAt());
@@ -214,6 +215,6 @@ class CreateUserUseCaseTest {
         verify(passwordEncoder, times(1)).encode(validRequest.password());
         verify(roleRepository, times(1)).findByName(RolesEnum.IS_STUDENT.name());
         verify(userRepository, never()).save(any(User.class));
-        verify(emailVerificationService, never()).issueAndSendQuietly(any(User.class));
+        verify(emailOutboxService, never()).enqueue(any(User.class), any(EmailOutboxType.class));
     }
 }

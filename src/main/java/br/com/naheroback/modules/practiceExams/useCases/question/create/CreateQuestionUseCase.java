@@ -3,6 +3,7 @@ package br.com.naheroback.modules.practiceExams.useCases.question.create;
 import br.com.naheroback.common.exceptions.custom.BadRequestException;
 import br.com.naheroback.modules.auth.services.AuthService;
 import br.com.naheroback.modules.practiceExams.entities.Alternative;
+import br.com.naheroback.modules.practiceExams.entities.Domain;
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.practiceExams.entities.Question;
 import br.com.naheroback.modules.practiceExams.repositories.AlternativeRepository;
@@ -33,7 +34,7 @@ public class CreateQuestionUseCase {
     @Secured("IS_TEACHER")
     public List<Question> execute(List<CreateQuestionRequest> requests) {
         int teacherId = AuthService.getUserFromToken().getId();
-        List<String> domains = resolveDomains(requests);
+        List<Domain> domains = resolveDomains(requests);
         List<Question> savedQuestions = new ArrayList<>();
 
         for (int i = 0; i < requests.size(); i++) {
@@ -55,7 +56,7 @@ public class CreateQuestionUseCase {
         return savedQuestions;
     }
 
-    private List<String> resolveDomains(List<CreateQuestionRequest> requests) {
+    private List<Domain> resolveDomains(List<CreateQuestionRequest> requests) {
         List<Integer> examIds = requests.stream()
                 .filter(request -> hasDomain(request) && request.practiceExamId() != null)
                 .map(CreateQuestionRequest::practiceExamId)
@@ -66,8 +67,9 @@ public class CreateQuestionUseCase {
                 ? Map.of()
                 : practiceExamRepository.findAllByIdIn(examIds).stream()
                         .collect(Collectors.toMap(PracticeExam::getId, PracticeExam::getSlug));
+        ExamDomains.Catalog catalog = examDomains.forPracticeExams(slugByExamId.keySet());
 
-        List<String> resolved = new ArrayList<>();
+        List<Domain> resolved = new ArrayList<>();
         List<String> rejections = new ArrayList<>();
 
         for (int i = 0; i < requests.size(); i++) {
@@ -84,13 +86,13 @@ public class CreateQuestionUseCase {
                 resolved.add(null);
                 continue;
             }
-            if (!examDomains.hasPracticeExam(slug)) {
+            if (!catalog.hasPracticeExam(request.practiceExamId())) {
                 rejections.add("index " + i + ": no domain map for practice exam '" + slug + "'");
                 resolved.add(null);
                 continue;
             }
 
-            Optional<String> canonical = examDomains.canonicalName(slug, request.domain());
+            Optional<Domain> canonical = catalog.canonical(request.practiceExamId(), request.domain());
             if (canonical.isEmpty()) {
                 rejections.add("index " + i + ": '" + request.domain()
                         + "' is not a domain of '" + slug + "'");

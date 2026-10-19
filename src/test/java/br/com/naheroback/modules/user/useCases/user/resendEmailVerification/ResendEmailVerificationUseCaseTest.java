@@ -1,8 +1,9 @@
 package br.com.naheroback.modules.user.useCases.user.resendEmailVerification;
 
+import br.com.naheroback.modules.emailOutbox.entities.enums.EmailOutboxType;
+import br.com.naheroback.modules.emailOutbox.services.EmailOutboxService;
 import br.com.naheroback.modules.user.entities.User;
 import br.com.naheroback.modules.user.repositories.UserRepository;
-import br.com.naheroback.modules.user.services.EmailVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class ResendEmailVerificationUseCaseTest {
     private UserRepository userRepository;
 
     @Mock
-    private EmailVerificationService emailVerificationService;
+    private EmailOutboxService emailOutboxService;
 
     @InjectMocks
     private ResendEmailVerificationUseCase resendEmailVerificationUseCase;
@@ -45,13 +46,13 @@ class ResendEmailVerificationUseCaseTest {
     }
 
     @Test
-    @DisplayName("Should issue a new verification email for an unconfirmed user")
+    @DisplayName("Should queue a new verification email for an unconfirmed user")
     void shouldIssueNewVerificationEmailForUnconfirmedUser() {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
 
         resendEmailVerificationUseCase.execute(validRequest);
 
-        verify(emailVerificationService, times(1)).issueAndSend(mockUser);
+        verify(emailOutboxService, times(1)).enqueue(mockUser, EmailOutboxType.EMAIL_VERIFICATION);
     }
 
     @Test
@@ -62,7 +63,7 @@ class ResendEmailVerificationUseCaseTest {
 
         resendEmailVerificationUseCase.execute(validRequest);
 
-        verify(emailVerificationService, never()).issueAndSend(any(User.class));
+        verify(emailOutboxService, never()).enqueue(any(User.class), any(EmailOutboxType.class));
     }
 
     @Test
@@ -72,6 +73,6 @@ class ResendEmailVerificationUseCaseTest {
 
         assertDoesNotThrow(() -> resendEmailVerificationUseCase.execute(validRequest));
 
-        verify(emailVerificationService, never()).issueAndSend(any(User.class));
+        verify(emailOutboxService, never()).enqueue(any(User.class), any(EmailOutboxType.class));
     }
 }

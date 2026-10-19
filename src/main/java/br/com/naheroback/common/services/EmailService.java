@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -105,8 +104,7 @@ public class EmailService {
     @Value("${app.email-verification.expiration-hours}")
     private Integer verificationExpirationHours;
 
-    public void sendPasswordResetEmail(String to, String name, String token) {
-        Locale locale = LocaleContextHolder.getLocale();
+    public void sendPasswordResetEmail(String to, String name, String token, Locale locale) {
         Map<String, Object> model = translate(PASSWORD_RESET_KEYS, locale, name, expirationMinutes);
 
         model.put("name", name);
@@ -119,8 +117,7 @@ public class EmailService {
         sendHtmlWithLogo(to, (String) model.get("subject"), body);
     }
 
-    public void sendEmailVerificationEmail(String to, String name, String token) {
-        Locale locale = LocaleContextHolder.getLocale();
+    public void sendEmailVerificationEmail(String to, String name, String token, Locale locale) {
         Map<String, Object> model = translate(EMAIL_VERIFICATION_KEYS, locale, name, verificationExpirationHours);
 
         model.put("name", name);

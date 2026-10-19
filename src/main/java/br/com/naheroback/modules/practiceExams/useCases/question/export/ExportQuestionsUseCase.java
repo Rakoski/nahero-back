@@ -42,7 +42,7 @@ public class ExportQuestionsUseCase {
                         question.getLanguage(),
                         question.getContent(),
                         optionsByQuestionId.getOrDefault(question.getId(), List.of()),
-                        question.getDomain()))
+                        question.getDomainName()))
                 .toList();
     }
 }

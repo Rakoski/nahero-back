@@ -1,5 +1,6 @@
 package br.com.naheroback.modules.practiceExams.services;
 
+import br.com.naheroback.modules.practiceExams.entities.Domain;
 import br.com.naheroback.modules.practiceExams.entities.Question;
 import br.com.naheroback.modules.practiceExams.entities.StudentAnswer;
 import br.com.naheroback.modules.practiceExams.entities.StudentPracticeAttempt;
@@ -141,7 +142,11 @@ class AttemptDomainBreakdownServiceTest {
     private Question question(int id, String domain) {
         Question question = new Question();
         question.setId(id);
-        question.setDomain(domain);
+        if (domain != null) {
+            Domain entity = new Domain();
+            entity.setName(domain);
+            question.setDomain(entity);
+        }
         return question;
     }
 }

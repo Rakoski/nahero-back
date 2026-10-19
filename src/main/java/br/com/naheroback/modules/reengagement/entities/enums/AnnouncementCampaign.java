@@ -4,7 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum AnnouncementCampaign {
-    FEEDBACK_LAUNCH("feedback_launch", "/how-it-works");
+    FEEDBACK_LAUNCH("feedback_launch", "/how-it-works"),
+    QUESTION_LISTS_LAUNCH("question_lists_launch", "/student/question-lists");
 
     private static final String MESSAGE_PREFIX = "email.announcement.";
 

@@ -4,9 +4,14 @@ import br.com.naheroback.common.utils.ValidateNull;
 import br.com.naheroback.modules.exams.entities.Exam;
 import br.com.naheroback.modules.practiceExams.entities.PracticeExam;
 import br.com.naheroback.modules.user.entities.User;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 public record CreatePracticeExamRequest(
     @NotNull(message = "{practiceexam.examid.required}") @Positive Integer examId,
@@ -14,8 +19,15 @@ public record CreatePracticeExamRequest(
     @NotBlank(message = "{practiceexam.description.required}") String description,
     @NotNull(message = "{practiceexam.passingscore.required}") @Positive Integer passingScore,
     Integer timeLimit,
-    @NotNull(message = "{practiceexam.difficultylevel.required}") Integer difficultyLevel
+    @NotNull(message = "{practiceexam.difficultylevel.required}") Integer difficultyLevel,
+    List<@Valid DomainRequest> domains
 ) {
+    public record DomainRequest(
+        @NotBlank(message = "{practiceexam.domain.name.required}") @Size(max = 160) String name,
+        @PositiveOrZero Double minWeight,
+        @PositiveOrZero Double maxWeight
+    ) {}
+
     public static PracticeExam toDomain(CreatePracticeExamRequest input, User teacher) {
         PracticeExam practiceExam = new PracticeExam();
         practiceExam.setExam(ValidateNull.validate(Exam.class, input.examId));
